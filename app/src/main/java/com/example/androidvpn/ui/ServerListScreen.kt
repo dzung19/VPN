@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,53 +19,53 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.androidvpn.model.ServerConfig
 import com.wireguard.android.backend.Tunnel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerListScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onNavigateToAdd: () -> Unit
 ) {
-    // In a real app, we'd list all saved configs. 
-    // For now, we'll just show the current one and an option to create the default Cloudflare one.
-    
+    val serverList by viewModel.serverList.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
-    val configs by viewModel.configs.collectAsState()
-    
+
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onNavigateToAdd) {
-                Icon(Icons.Filled.Add, contentDescription = "Add Server")
-            }
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Servers",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(configs) { config ->
-                     ServerItem(
-                         config = config,
-                         isSelected = config.name == currentConfig?.name,
-                         onClick = { 
-                             viewModel.selectConfig(config)
-                             onNavigateBack() // Optional: go back to home on selection
-                         }
-                     )
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Select Location") },
+                navigationIcon = {
+                    // Back button could go here
                 }
+            )
+        }
+        // fab removed as we use pre-defined list now
+    ) { padding ->
+        if (serverList.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding), contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-            
-            if (configs.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No servers found. Add one!")
+        } else {
+            LazyColumn(
+                modifier = Modifier.padding(padding),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(serverList) { server ->
+                    val isSelected =
+                        currentConfig?.name == "${server.flag} ${server.city}" // Simple check
+
+                    ServerItemCard(
+                        server = server,
+                        isSelected = isSelected,
+                        onClick = {
+                            viewModel.connectToServer(server)
+                            onNavigateBack()
+                        }
+                    )
                 }
             }
         }
@@ -72,25 +73,80 @@ fun ServerListScreen(
 }
 
 @Composable
-fun ServerItem(config: ServerConfig, isSelected: Boolean, onClick: () -> Unit) {
+fun ServerItemCard(
+    server: com.example.androidvpn.model.ServerItemDto,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
     Card(
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = config.name,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-            )
-            Text(
-                text = config.endpoint,
-                style = MaterialTheme.typography.bodySmall
-            )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Use local calculation for flag to avoid API encoding issues
+                val flagEmoji = remember(server.id) {
+                    // Extract country code from ID (us-iowa -> US) or use a mapping
+                    // Assuming ID starts with country code like 'us-iowa', 'sg-singapore'
+                    val code = server.id.take(2).uppercase()
+                    calculateFlagEmoji(code)
+                }
+
+                Text(
+                    text = flagEmoji,
+                    fontSize = 32.sp,
+                    modifier = Modifier.padding(end = 16.dp)
+                )
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = server.country,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    )
+                    Text(
+                        text = server.city,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                if (server.premium) {
+                    Icon(
+                        imageVector = Icons.Filled.Warning, // Replace with Crown/Star icon
+                        contentDescription = "Premium",
+                        tint = Color(0xFFFFD700)
+                    )
+                }
+
+                if (isSelected) {
+                    Icon(
+                        imageVector = Icons.Filled.Check,
+                        contentDescription = "Selected",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
         }
     }
 }
+
+// Helper to convert country code (e.g. "US") to Flag Emoji (≡ƒç║≡ƒç╕)
+fun calculateFlagEmoji(countryCode: String): String {
+    if (countryCode.length != 2) return "≡ƒîÉ"
+    val firstLetter = Character.codePointAt(countryCode, 0) - 0x41 + 0x1F1E6
+    val secondLetter = Character.codePointAt(countryCode, 1) - 0x41 + 0x1F1E6
+    return String(Character.toChars(firstLetter)) + String(Character.toChars(secondLetter))
+}
+

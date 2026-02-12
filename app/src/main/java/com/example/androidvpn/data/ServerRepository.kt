@@ -15,11 +15,14 @@ import javax.inject.Singleton
 @Singleton
 class ServerRepository @Inject constructor(
     @ApplicationContext context: Context,
-    private val cloudflareService: CloudflareService
+    private val cloudflareService: CloudflareService,
+    private val vpnApiService: VpnApiService
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("vpn_configs", Context.MODE_PRIVATE)
     private val KEY_CONFIGS = "saved_configs"
     private val KEY_CURRENT_ID = "current_config_id"
+    private val KEY_CLIENT_PRIVATE_KEY = "client_private_key"
+    private val KEY_CLIENT_PUBLIC_KEY = "client_public_key"
 
     // Load all configs
     suspend fun getConfigs(): List<ServerConfig> = withContext(Dispatchers.IO) {
@@ -69,6 +72,10 @@ class ServerRepository @Inject constructor(
                 put("publicKey", config.publicKey)
                 put("endpoint", config.endpoint)
                 put("allowedIps", config.allowedIps)
+                put("country", config.country)
+                put("flag", config.flag)
+                put("city", config.city)
+                put("isPremium", config.isPremium)
             }
             array.put(json)
         }
@@ -83,14 +90,13 @@ class ServerRepository @Inject constructor(
             dns = json.optString("dns"),
             publicKey = json.optString("publicKey"),
             endpoint = json.optString("endpoint"),
-            allowedIps = json.optString("allowedIps")
+            allowedIps = json.optString("allowedIps"),
+            country = json.optString("country"),
+            flag = json.optString("flag"),
+            city = json.optString("city"),
+            isPremium = json.optBoolean("isPremium")
         )
     }
-    
-    // CloudflareService is now injected
-
-
-    // ... (existing code)
 
     // Generate a new keypair
     fun generateKeyPair(): KeyPair {
@@ -106,5 +112,81 @@ class ServerRepository @Inject constructor(
         return cloudflareService.registerAndGetConfig(privateKey, publicKey)?.also { config ->
             addConfig(config)
         }
+    }
+
+    // --- New API Integration ---
+
+    // Get list of servers from API
+    suspend fun fetchServers(): List<com.example.androidvpn.model.ServerItemDto> = withContext(Dispatchers.IO) {
+        try {
+            val response = vpnApiService.getServers()
+            response.servers
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    // Connect to a specific server
+    suspend fun connectToServer(serverItem: com.example.androidvpn.model.ServerItemDto): ServerConfig? = withContext(Dispatchers.IO) {
+        val keys = getOrCreateClientKeys()
+
+        try {
+            /*
+            val request = com.example.androidvpn.model.ConnectRequest(
+                userId = "user_${keys.publicKey.toBase64().take(8)}",
+                serverId = serverItem.id,
+                clientPublicKey = keys.publicKey.toBase64()
+            )
+            val response = vpnApiService.connect(request = request)
+            */
+
+            // Real config for US Iowa (Google Cloud)
+            val isRealServer = serverItem.id == "us-iowa"
+
+            val config = if (isRealServer) {
+                ServerConfig(
+                    name = "${serverItem.flag} ${serverItem.city}",
+                    privateKey = "yJ3uFyFakvXKtvaWcbhl4MgjvWpdEOaO9RkbjyWO21o=",
+                    address = "10.10.1.2/24",
+                    dns = "1.1.1.1, 8.8.8.8",
+                    publicKey = "ndM54jEZSrz7GxVxjBHTSFFPHFSxhTxfHAKpMcZOqQ4=",
+                    endpoint = "35.222.23.3:51820",
+                    allowedIps = "0.0.0.0/0, ::/0",
+                    country = serverItem.country,
+                    flag = serverItem.flag,
+                    city = serverItem.city,
+                    isPremium = serverItem.premium
+                )
+            } else {
+                // Other servers not yet configured
+                return@withContext null
+            }
+
+            // Save as current config
+            addConfig(config)
+            saveCurrentConfig(config)
+
+            return@withContext config
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    private fun getOrCreateClientKeys(): KeyPair {
+        val priv = prefs.getString(KEY_CLIENT_PRIVATE_KEY, null)
+        val pub = prefs.getString(KEY_CLIENT_PUBLIC_KEY, null)
+
+        if (priv != null && pub != null) {
+            return KeyPair(com.wireguard.crypto.Key.fromBase64(priv))
+        }
+
+        val keys = generateKeyPair()
+        prefs.edit()
+            .putString(KEY_CLIENT_PRIVATE_KEY, keys.privateKey.toBase64())
+            .putString(KEY_CLIENT_PUBLIC_KEY, keys.publicKey.toBase64())
+            .apply()
+        return keys
     }
 }

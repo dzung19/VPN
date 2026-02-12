@@ -1,6 +1,7 @@
 package com.example.androidvpn.di
 
 import com.example.androidvpn.data.CloudflareApi
+import com.example.androidvpn.data.VpnApiService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,5 +45,26 @@ object NetworkModule {
     @Singleton
     fun provideCloudflareApi(retrofit: Retrofit): CloudflareApi {
         return retrofit.create(CloudflareApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @javax.inject.Named("VpnRetrofit")
+    fun provideVpnRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        val gson = GsonBuilder().setLenient().create()
+        // Replace with your actual Worker URL when deployed
+        val baseUrl = "https://vpn-api.daumo-ringtones.workers.dev/"
+        
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideVpnApiService(@javax.inject.Named("VpnRetrofit") retrofit: Retrofit): VpnApiService {
+        return retrofit.create(VpnApiService::class.java)
     }
 }

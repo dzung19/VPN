@@ -9,7 +9,13 @@ data class ServerConfig(
     val privateKey: String,
     val address: String, // Interface IP (e.g. 10.0.0.2/32)
     val dns: String = "1.1.1.1",
-    val publicKey: String, // Peer Public Key
-    val endpoint: String, // Peer Endpoint (IP:Port)
-    val allowedIps: String = "0.0.0.0/0, ::/0"
+    val publicKey: String = "", // Peer Public Key
+    val endpoint: String = "", // Peer Endpoint (IP:Port)
+    val allowedIps: String = "0.0.0.0/0, ::/0",
+    
+    // UI Metadata
+    val country: String = "",
+    val flag: String = "",
+    val city: String = "",
+    val isPremium: Boolean = false
 ) : Parcelable

@@ -29,7 +29,10 @@ import androidx.compose.material.icons.filled.LockOpen
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
-fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(
+    viewModel: HomeViewModel = hiltViewModel(),
+    onNavigateToServerList: () -> Unit
+) {
     val vpnState by viewModel.vpnState.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
     val duration by viewModel.connectionDuration.collectAsState()
@@ -115,14 +118,23 @@ fun HomeScreen(viewModel: HomeViewModel = hiltViewModel()) {
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(vertical = 16.dp)
+                .clickable {
+                    onNavigateToServerList()
+                },
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             shape = RoundedCornerShape(16.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Selected Server", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Selected Server", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { onNavigateToServerList() }) {
+                        Text("Change")
+                    }
+                }
+                
                 Text(
-                    text = currentConfig?.name ?: "No Server Selected",
+                    text = currentConfig?.name ?: "Select a Server",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface

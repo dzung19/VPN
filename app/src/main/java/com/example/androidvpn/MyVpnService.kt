@@ -1,8 +1,10 @@
 package com.example.androidvpn
 
+import android.annotation.SuppressLint
 import android.net.VpnService
 import android.util.Log
 
+@SuppressLint("VpnServicePolicy")
 class MyVpnService : VpnService() {
 
     override fun onCreate() {

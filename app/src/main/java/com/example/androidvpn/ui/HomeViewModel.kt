@@ -1,29 +1,27 @@
 package com.example.androidvpn.ui
 
-import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.net.VpnService
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidvpn.data.ServerRepository
 import com.example.androidvpn.data.TunnelManager
 import com.example.androidvpn.model.ServerConfig
+import com.example.androidvpn.model.ServerItemDto
 import com.wireguard.android.backend.Tunnel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
+    @param:ApplicationContext private val context: Context,
     private val repository: ServerRepository,
-    application: Application
-) : AndroidViewModel(application) {
+) : ViewModel() {
 
     // Repository is injected
 
@@ -40,6 +38,10 @@ class HomeViewModel @Inject constructor(
     private val _configs = MutableStateFlow<List<ServerConfig>>(emptyList())
     val configs: StateFlow<List<ServerConfig>> = _configs
 
+    // New Server List State
+    private val _serverList = MutableStateFlow<List<ServerItemDto>>(emptyList())
+    val serverList: StateFlow<List<ServerItemDto>> = _serverList
+
 
 
     private fun loadData() {
@@ -47,6 +49,10 @@ class HomeViewModel @Inject constructor(
             _configs.value = repository.getConfigs()
             _currentConfig.value = repository.getCurrentConfig()
             
+            // Fetch server list from API (or mock)
+            if (_serverList.value.isEmpty())
+                _serverList.value = repository.fetchServers()
+
             // Auto-create Cloudflare profile if no configs exist
             if (_configs.value.isEmpty()) {
                 createCloudflareConfig()
@@ -81,7 +87,23 @@ class HomeViewModel @Inject constructor(
             }
         }
     }
-    
+
+    // Connect to a specific server item (from UI)
+    fun connectToServer(serverItem: com.example.androidvpn.model.ServerItemDto) {
+        viewModelScope.launch {
+            // Stop current tunnel if running
+            if (vpnState.value == Tunnel.State.UP) {
+                TunnelManager.stopTunnel()
+            }
+
+            val config = repository.connectToServer(serverItem)
+            if (config != null) {
+                _currentConfig.value = config
+                TunnelManager.startTunnel(config)
+            }
+        }
+    }
+
     // Parse raw wireguard config text (Basic helper)
     fun parseAndAddConfig(name: String, configText: String) {
         // This is a naive parser. Ideally use com.wireguard.config.Config.parse
@@ -176,6 +198,6 @@ class HomeViewModel @Inject constructor(
     }
 
     fun checkVpnPermission(): Intent? {
-        return VpnService.prepare(getApplication())
+        return VpnService.prepare(context)
     }
 }
