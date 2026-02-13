@@ -36,6 +36,7 @@ fun HomeScreen(
     val vpnState by viewModel.vpnState.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
     val duration by viewModel.connectionDuration.collectAsState()
+    val isProvisioning by viewModel.isProvisioning.collectAsState()
     
     val context = LocalContext.current
     
@@ -52,9 +53,21 @@ fun HomeScreen(
     val isConnected = vpnState == Tunnel.State.UP
     
     // Dynamic Colors based on State
-    val statusColor = if (isConnected) Color(0xFF00C853) else Color(0xFFFF5252)
-    val statusText = if (isConnected) "CONNECTED" else "DISCONNECTED"
-    val buttonText = if (isConnected) "STOP" else "CONNECT"
+    val statusColor = when {
+        isProvisioning -> Color(0xFFFFA726) // Orange for provisioning
+        isConnected -> Color(0xFF00C853)
+        else -> Color(0xFFFF5252)
+    }
+    val statusText = when {
+        isProvisioning -> "SETTING UP..."
+        isConnected -> "CONNECTED"
+        else -> "DISCONNECTED"
+    }
+    val buttonText = when {
+        isProvisioning -> "Setting up..."
+        isConnected -> "STOP"
+        else -> "CONNECT"
+    }
 
     Column(
         modifier = Modifier
@@ -90,12 +103,20 @@ fun HomeScreen(
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = if(isConnected) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(64.dp)
-                )
+                if (isProvisioning) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(64.dp),
+                        color = statusColor,
+                        strokeWidth = 4.dp
+                    )
+                } else {
+                    Icon(
+                        imageVector = if(isConnected) Icons.Filled.Lock else Icons.Filled.LockOpen,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(64.dp)
+                    )
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = statusText,
@@ -111,6 +132,14 @@ fun HomeScreen(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
+                if (isProvisioning) {
+                    Text(
+                        text = "Registering with server...",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
             }
         }
 
@@ -120,7 +149,7 @@ fun HomeScreen(
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
                 .clickable {
-                    onNavigateToServerList()
+                    if (!isProvisioning) onNavigateToServerList()
                 },
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             shape = RoundedCornerShape(16.dp)
@@ -128,7 +157,7 @@ fun HomeScreen(
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Selected Server", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { onNavigateToServerList() }) {
+                    TextButton(onClick = { if (!isProvisioning) onNavigateToServerList() }) {
                         Text("Change")
                     }
                 }
@@ -185,10 +214,23 @@ fun HomeScreen(
             .fillMaxWidth()
             .height(56.dp),
         colors = ButtonDefaults.buttonColors(
-             containerColor = if(isConnected) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+             containerColor = when {
+                 isProvisioning -> Color(0xFFFFA726)
+                 isConnected -> MaterialTheme.colorScheme.error
+                 else -> MaterialTheme.colorScheme.primary
+             }
         ),
-        shape = RoundedCornerShape(28.dp)
+        shape = RoundedCornerShape(28.dp),
+        enabled = !isProvisioning
     ) {
+        if (isProvisioning) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+        }
         Text(text = buttonText, fontSize = 18.sp, fontWeight = FontWeight.Bold)
     }
         

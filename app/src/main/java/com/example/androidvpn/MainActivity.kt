@@ -1,18 +1,14 @@
 package com.example.androidvpn
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -20,13 +16,21 @@ import androidx.navigation.compose.rememberNavController
 import com.example.androidvpn.ui.AddServerScreen
 import com.example.androidvpn.ui.HomeScreen
 import com.example.androidvpn.ui.ServerListScreen
+import com.example.androidvpn.ui.TermsOfServiceScreen
 
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.core.content.edit
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // precise TOS acceptance state
+        val prefs = getSharedPreferences("vpn_prefs", Context.MODE_PRIVATE)
+        val isTosAccepted = prefs.getBoolean("is_tos_accepted", false)
+        val startDest = if (isTosAccepted) "home" else "tos"
+        enableEdgeToEdge()
         setContent {
             MaterialTheme {
                 val navController = rememberNavController()
@@ -35,7 +39,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    NavHost(navController = navController, startDestination = "home") {
+                    NavHost(navController = navController, startDestination = startDest) {
+                        composable("tos") {
+                            TermsOfServiceScreen(
+                                onAccepted = {
+                                    prefs.edit { putBoolean("is_tos_accepted", true) }
+                                    navController.navigate("home") {
+                                        popUpTo("tos") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
                         composable("home") {
                             HomeScreen(
                                 viewModel = hiltViewModel(),

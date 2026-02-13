@@ -25,5 +25,14 @@ data class WireGuardConfigResponse(
     val serverPublicKey: String,
     val endpoint: String,
     val allowedIPs: String,
-    val dns: String
+    val dns: String,
+    val assignedIP: String = "10.10.0.2"
+)
+
+data class RegisterRequest(
+    val publicKey: String
+)
+
+data class RegisterResponse(
+    val status: String
 )

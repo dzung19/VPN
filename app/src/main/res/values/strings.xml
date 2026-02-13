@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Android VPN</string>
+    <string name="policy_yes">Yes</string>
 </resources>

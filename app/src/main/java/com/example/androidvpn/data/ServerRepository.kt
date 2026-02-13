@@ -11,6 +11,7 @@ import org.json.JSONObject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import androidx.core.content.edit
 
 @Singleton
 class ServerRepository @Inject constructor(
@@ -53,7 +54,7 @@ class ServerRepository @Inject constructor(
     }
 
     suspend fun saveCurrentConfig(config: ServerConfig) = withContext(Dispatchers.IO) {
-        prefs.edit().putString(KEY_CURRENT_ID, config.name).apply() // Simple ID by name for now
+        prefs.edit { putString(KEY_CURRENT_ID, config.name) } // Simple ID by name for now
     }
 
     suspend fun getCurrentConfig(): ServerConfig? = withContext(Dispatchers.IO) {
@@ -132,36 +133,68 @@ class ServerRepository @Inject constructor(
         val keys = getOrCreateClientKeys()
 
         try {
-            /*
-            val request = com.example.androidvpn.model.ConnectRequest(
+            // Step 1: Register key with Worker (for KV tracking)
+            val registerRequest = com.example.androidvpn.model.RegisterRequest(
+                publicKey = keys.publicKey.toBase64()
+            )
+            try {
+                val regResponse = vpnApiService.registerKey(registerRequest)
+                android.util.Log.d("ServerRepository", "Key registration status: ${regResponse.status}")
+            } catch (e: Exception) {
+                android.util.Log.e("ServerRepository", "Key registration failed: ${e.message}")
+            }
+
+            // Step 2: Call VM peer API directly to add peer and get assigned IP
+            var assignedIP = "10.10.1.2" // default fallback
+            try {
+                val vmUrl = java.net.URL("http://35.222.23.3:8080/add-peer")
+                val conn = vmUrl.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json")
+                conn.setRequestProperty("X-Secret", "cc0221a4d55b1d4b09bf4635e89edbf7")
+                conn.connectTimeout = 2000
+                conn.readTimeout = 2000
+                conn.doOutput = true
+
+                val body = org.json.JSONObject().put("publicKey", keys.publicKey.toBase64()).toString()
+                conn.outputStream.write(body.toByteArray())
+                conn.outputStream.flush()
+
+                if (conn.responseCode == 200) {
+                    val responseText = conn.inputStream.bufferedReader().readText()
+                    val json = JSONObject(responseText)
+                    assignedIP = json.optString("ip", assignedIP)
+                    android.util.Log.d("ServerRepository", "VM Peer API: status=${json.optString("status")}, ip=$assignedIP")
+                } else {
+                    android.util.Log.e("ServerRepository", "VM Peer API failed: HTTP ${conn.responseCode}")
+                }
+                conn.disconnect()
+            } catch (e: Exception) {
+                android.util.Log.e("ServerRepository", "VM Peer API error: ${e.message}")
+            }
+
+            // Step 3: Get server config from Worker API
+            val connectRequest = com.example.androidvpn.model.ConnectRequest(
                 userId = "user_${keys.publicKey.toBase64().take(8)}",
                 serverId = serverItem.id,
                 clientPublicKey = keys.publicKey.toBase64()
             )
-            val response = vpnApiService.connect(request = request)
-            */
+            val response = vpnApiService.connect(request = connectRequest)
+            android.util.Log.d("ServerRepository", "Worker API: Endpoint=${response.endpoint}, WorkerIP=${response.assignedIP}, UsingIP=$assignedIP")
 
-            // Real config for US Iowa (Google Cloud)
-            val isRealServer = serverItem.id == "us-iowa"
-
-            val config = if (isRealServer) {
-                ServerConfig(
-                    name = "${serverItem.flag} ${serverItem.city}",
-                    privateKey = "yJ3uFyFakvXKtvaWcbhl4MgjvWpdEOaO9RkbjyWO21o=",
-                    address = "10.10.1.2/24",
-                    dns = "1.1.1.1, 8.8.8.8",
-                    publicKey = "ndM54jEZSrz7GxVxjBHTSFFPHFSxhTxfHAKpMcZOqQ4=",
-                    endpoint = "35.222.23.3:51820",
-                    allowedIps = "0.0.0.0/0, ::/0",
-                    country = serverItem.country,
-                    flag = serverItem.flag,
-                    city = serverItem.city,
-                    isPremium = serverItem.premium
-                )
-            } else {
-                // Other servers not yet configured
-                return@withContext null
-            }
+            val config = ServerConfig(
+                name = "${serverItem.flag} ${serverItem.city}",
+                privateKey = keys.privateKey.toBase64(),
+                address = "$assignedIP/32", // Use IP from VM, not Worker fallback
+                dns = response.dns,
+                publicKey = response.serverPublicKey,
+                endpoint = response.endpoint,
+                allowedIps = response.allowedIPs,
+                country = serverItem.country,
+                flag = serverItem.flag,
+                city = serverItem.city,
+                isPremium = serverItem.premium
+            )
 
             // Save as current config
             addConfig(config)
@@ -169,6 +202,7 @@ class ServerRepository @Inject constructor(
 
             return@withContext config
         } catch (e: Exception) {
+            android.util.Log.e("ServerRepository", "connectToServer failed: ${e.message}")
             e.printStackTrace()
             null
         }

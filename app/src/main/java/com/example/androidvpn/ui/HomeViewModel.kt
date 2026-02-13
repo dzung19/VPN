@@ -12,9 +12,11 @@ import com.example.androidvpn.model.ServerItemDto
 import com.wireguard.android.backend.Tunnel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -41,6 +43,10 @@ class HomeViewModel @Inject constructor(
     // New Server List State
     private val _serverList = MutableStateFlow<List<ServerItemDto>>(emptyList())
     val serverList: StateFlow<List<ServerItemDto>> = _serverList
+
+    // Provisioning state (loading indicator for new users)
+    private val _isProvisioning = MutableStateFlow(false)
+    val isProvisioning: StateFlow<Boolean> = _isProvisioning
 
 
 
@@ -92,14 +98,21 @@ class HomeViewModel @Inject constructor(
     fun connectToServer(serverItem: com.example.androidvpn.model.ServerItemDto) {
         viewModelScope.launch {
             // Stop current tunnel if running
-            if (vpnState.value == Tunnel.State.UP) {
-                TunnelManager.stopTunnel()
-            }
+            withContext(NonCancellable) {
+                if (vpnState.value == Tunnel.State.UP) {
+                    TunnelManager.stopTunnel()
+                }
 
-            val config = repository.connectToServer(serverItem)
-            if (config != null) {
-                _currentConfig.value = config
-                TunnelManager.startTunnel(config)
+                _isProvisioning.value = true
+                val config = repository.connectToServer(serverItem)
+                if (config != null) {
+                    _currentConfig.value = config
+                    // VM adds peer instantly via HTTP API, no delay needed
+                    _isProvisioning.value = false
+                    TunnelManager.startTunnel(config)
+                } else {
+                    _isProvisioning.value = false
+                }
             }
         }
     }
