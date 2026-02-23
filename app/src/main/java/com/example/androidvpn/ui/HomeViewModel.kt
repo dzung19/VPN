@@ -3,6 +3,7 @@ package com.example.androidvpn.ui
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidvpn.data.ServerRepository
@@ -12,11 +13,16 @@ import com.example.androidvpn.model.ServerItemDto
 import com.wireguard.android.backend.Tunnel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Socket
 import javax.inject.Inject
 
 @HiltViewModel
@@ -47,6 +53,10 @@ class HomeViewModel @Inject constructor(
     // Provisioning state (loading indicator for new users)
     private val _isProvisioning = MutableStateFlow(false)
     val isProvisioning: StateFlow<Boolean> = _isProvisioning
+
+    // Latency measurement
+    private val _latencyMs = MutableStateFlow<Long?>(-1L)
+    val latencyMs: StateFlow<Long?> = _latencyMs
 
 
 
@@ -94,8 +104,30 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun measureLatency(endpoint: String? = null) {
+        val target = endpoint ?: _currentConfig.value?.endpoint ?: return
+        viewModelScope.launch {
+            _latencyMs.value = null // show loading
+            val ms = withContext(Dispatchers.IO) {
+                try {
+                    val parts = target.split(":")
+                    val host = parts[0]
+                    val port = InetAddress.getByName(host)
+                    val start = System.currentTimeMillis()
+                    port.isReachable(5000)
+                    val elapsed = System.currentTimeMillis() - start
+                    elapsed
+                } catch (e: Exception) {
+                    Log.d("Latency", "$e ms") // Debug log
+                    -1L
+                }
+            }
+            _latencyMs.value = ms
+        }
+    }
+
     // Connect to a specific server item (from UI)
-    fun connectToServer(serverItem: com.example.androidvpn.model.ServerItemDto) {
+    fun connectToServer(serverItem: ServerItemDto) {
         viewModelScope.launch {
             // Stop current tunnel if running
             withContext(NonCancellable) {

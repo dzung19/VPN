@@ -139,53 +139,24 @@ class ServerRepository @Inject constructor(
             )
             try {
                 val regResponse = vpnApiService.registerKey(registerRequest)
-                android.util.Log.d("ServerRepository", "Key registration status: ${regResponse.status}")
+                android.util.Log.d("ServerRepository", "Key registration: ${regResponse.status}")
             } catch (e: Exception) {
                 android.util.Log.e("ServerRepository", "Key registration failed: ${e.message}")
             }
 
-            // Step 2: Call VM peer API directly to add peer and get assigned IP
-            var assignedIP = "10.10.1.2" // default fallback
-            try {
-                val vmUrl = java.net.URL("http://35.222.23.3:8080/add-peer")
-                val conn = vmUrl.openConnection() as java.net.HttpURLConnection
-                conn.requestMethod = "POST"
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.setRequestProperty("X-Secret", "cc0221a4d55b1d4b09bf4635e89edbf7")
-                conn.connectTimeout = 2000
-                conn.readTimeout = 2000
-                conn.doOutput = true
-
-                val body = org.json.JSONObject().put("publicKey", keys.publicKey.toBase64()).toString()
-                conn.outputStream.write(body.toByteArray())
-                conn.outputStream.flush()
-
-                if (conn.responseCode == 200) {
-                    val responseText = conn.inputStream.bufferedReader().readText()
-                    val json = JSONObject(responseText)
-                    assignedIP = json.optString("ip", assignedIP)
-                    android.util.Log.d("ServerRepository", "VM Peer API: status=${json.optString("status")}, ip=$assignedIP")
-                } else {
-                    android.util.Log.e("ServerRepository", "VM Peer API failed: HTTP ${conn.responseCode}")
-                }
-                conn.disconnect()
-            } catch (e: Exception) {
-                android.util.Log.e("ServerRepository", "VM Peer API error: ${e.message}")
-            }
-
-            // Step 3: Get server config from Worker API
+            // Step 2: Connect via Worker API (Worker handles peer registration via tunnel)
             val connectRequest = com.example.androidvpn.model.ConnectRequest(
                 userId = "user_${keys.publicKey.toBase64().take(8)}",
                 serverId = serverItem.id,
                 clientPublicKey = keys.publicKey.toBase64()
             )
             val response = vpnApiService.connect(request = connectRequest)
-            android.util.Log.d("ServerRepository", "Worker API: Endpoint=${response.endpoint}, WorkerIP=${response.assignedIP}, UsingIP=$assignedIP")
+            android.util.Log.d("ServerRepository", "Worker API: assignedIP=${response.assignedIP}, endpoint=${response.endpoint}")
 
             val config = ServerConfig(
                 name = "${serverItem.flag} ${serverItem.city}",
                 privateKey = keys.privateKey.toBase64(),
-                address = "$assignedIP/32", // Use IP from VM, not Worker fallback
+                address = "${response.assignedIP}/32",
                 dns = response.dns,
                 publicKey = response.serverPublicKey,
                 endpoint = response.endpoint,
@@ -196,7 +167,6 @@ class ServerRepository @Inject constructor(
                 isPremium = serverItem.premium
             )
 
-            // Save as current config
             addConfig(config)
             saveCurrentConfig(config)
 

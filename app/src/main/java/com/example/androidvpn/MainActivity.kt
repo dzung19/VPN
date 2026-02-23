@@ -20,6 +20,7 @@ import com.example.androidvpn.ui.TermsOfServiceScreen
 
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.content.edit
+import androidx.core.view.WindowCompat
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -71,5 +72,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars =
+            true
     }
 }

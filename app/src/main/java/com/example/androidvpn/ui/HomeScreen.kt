@@ -37,6 +37,12 @@ fun HomeScreen(
     val currentConfig by viewModel.currentConfig.collectAsState()
     val duration by viewModel.connectionDuration.collectAsState()
     val isProvisioning by viewModel.isProvisioning.collectAsState()
+    val latencyMs by viewModel.latencyMs.collectAsState()
+    
+    // Measure latency when config changes
+    LaunchedEffect(currentConfig?.endpoint) {
+        currentConfig?.endpoint?.let { viewModel.measureLatency(it) }
+    }
     
     val context = LocalContext.current
     
@@ -73,6 +79,8 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
@@ -169,11 +177,39 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 if (currentConfig != null) {
-                   Text(
-                       text = currentConfig!!.endpoint,
-                       fontSize = 12.sp,
-                       color = MaterialTheme.colorScheme.onSurfaceVariant
-                   )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = currentConfig!!.endpoint,
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // Latency badge
+                        val latencyText = when {
+                            latencyMs == null -> "⏳"
+                            latencyMs!! < 0 -> "--"
+                            else -> "${latencyMs}ms"
+                        }
+                        val latencyColor = when {
+                            latencyMs == null -> Color.Gray
+                            latencyMs!! < 0 -> Color.Gray
+                            latencyMs!! < 100 -> Color(0xFF00C853) // Green
+                            latencyMs!! < 200 -> Color(0xFFFFA726) // Orange
+                            else -> Color(0xFFFF5252) // Red
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = latencyColor.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = latencyText,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = latencyColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
