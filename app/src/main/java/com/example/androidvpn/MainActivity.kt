@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
@@ -51,14 +52,21 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        composable("home") {
+                        composable("home") { backStackEntry ->
+                            val sharedViewModel: com.example.androidvpn.ui.HomeViewModel = hiltViewModel(backStackEntry)
                             HomeScreen(
-                                viewModel = hiltViewModel(),
+                                viewModel = sharedViewModel,
                                 onNavigateToServerList = { navController.navigate("server_list") }
                             )
                         }
                         composable("server_list") {
+                            // Share the same ViewModel from "home" backstack entry
+                            val parentEntry = remember(it) {
+                                navController.getBackStackEntry("home")
+                            }
+                            val sharedViewModel: com.example.androidvpn.ui.HomeViewModel = hiltViewModel(parentEntry)
                             ServerListScreen(
+                                viewModel = sharedViewModel,
                                 onNavigateBack = { navController.popBackStack() },
                                 onNavigateToAdd = { navController.navigate("add_server") }
                             )

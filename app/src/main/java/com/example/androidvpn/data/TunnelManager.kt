@@ -88,9 +88,9 @@ object TunnelManager {
     suspend fun startTunnel(config: ServerConfig) = withContext(Dispatchers.IO) {
         try {
             // Ensure fresh backend instance to avoid stale service connections
-            if (appContext != null) {
-                backend = GoBackend(appContext!!)
-            }
+//            if (appContext != null) {
+//                backend = GoBackend(appContext!!)
+//            }
 
             val wgConfig = buildWireGuardConfig(config)
 

@@ -1,5 +1,6 @@
 package com.example.androidvpn.data
 
+import android.util.Log
 import com.example.androidvpn.model.ServerConfig
 import com.google.gson.GsonBuilder
 import retrofit2.Retrofit
@@ -14,8 +15,6 @@ import javax.inject.Inject
 class CloudflareService @Inject constructor(
     private val api: CloudflareApi
 ) {
-    // Init block removed as API is injected
-
     suspend fun registerAndGetConfig(privateKey: String, publicKey: String): ServerConfig? {
         return try {
             val timestamp = getIso8601Date()
@@ -30,31 +29,39 @@ class CloudflareService @Inject constructor(
                 locale = "en_US"
             )
             
-            
+            Log.d(TAG, "Registering WARP with publicKey: ${publicKey.take(20)}...")
             val response = api.register(request)
+            Log.d(TAG, "Registration response ID: ${response.id}")
+            Log.d(TAG, "Account type: ${response.account.account_type}")
             
             // Cloudflare returns IP v4 and v6. 
-            // We should add both if available to avoid connectivity issues.
             val addressV4 = response.config.interfaceField.addresses.v4
             val addressV6 = response.config.interfaceField.addresses.v6
+            Log.d(TAG, "Addresses: v4=$addressV4, v6=$addressV6")
             
             var addresses = "$addressV4/32"
             if (addressV6.isNotEmpty()) {
                 addresses += ", $addressV6/128"
             }
             
-            val peer = response.config.peers.firstOrNull() ?: return null
+            val peer = response.config.peers.firstOrNull()
+            if (peer == null) {
+                Log.e(TAG, "No peers returned from WARP API!")
+                return null
+            }
+            Log.d(TAG, "Peer publicKey: ${peer.public_key.take(20)}...")
+            Log.d(TAG, "Peer endpoint: host=${peer.endpoint.host}, v4=${peer.endpoint.v4}, v6=${peer.endpoint.v6}")
             
             // Force known IP endpoint to avoid DNS issues during handshake
-            // engaging.cloudflareclient.com -> 162.159.192.1
             val endpointHost = peer.endpoint.host
             val resolvedEndpoint = if (endpointHost.contains("engage.cloudflareclient.com")) {
                 "162.159.192.1:2408"
             } else {
-                endpointHost ?: "162.159.192.1:2408"
+                endpointHost
             }
+            Log.d(TAG, "Resolved endpoint: $resolvedEndpoint")
 
-            ServerConfig(
+            val config = ServerConfig(
                 name = "Cloudflare WARP",
                 privateKey = privateKey,
                 address = addresses, 
@@ -63,8 +70,10 @@ class CloudflareService @Inject constructor(
                 endpoint = resolvedEndpoint,
                 allowedIps = "0.0.0.0/0, ::/0"
             )
+            android.util.Log.d(TAG, "WARP config created successfully: address=$addresses, endpoint=$resolvedEndpoint")
+            config
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e(TAG, "WARP registration FAILED: ${e.message}", e)
             null
         }
     }
@@ -73,5 +82,8 @@ class CloudflareService @Inject constructor(
         val df = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
         df.timeZone = TimeZone.getTimeZone("UTC")
         return df.format(Date())
+    }
+    companion object {
+        const val TAG = "CloudflareService"
     }
 }

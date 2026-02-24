@@ -6,6 +6,7 @@ import android.net.VpnService
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.androidvpn.data.BillingManager
 import com.example.androidvpn.data.ServerRepository
 import com.example.androidvpn.data.TunnelManager
 import com.example.androidvpn.model.ServerConfig
@@ -29,9 +30,11 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: ServerRepository,
+    val billingManager: BillingManager,
 ) : ViewModel() {
 
-    // Repository is injected
+    // Billing state
+    val isPremium = billingManager.isPremium
 
     
     // UI State
@@ -65,12 +68,12 @@ class HomeViewModel @Inject constructor(
             _configs.value = repository.getConfigs()
             _currentConfig.value = repository.getCurrentConfig()
             
-            // Fetch server list from API (or mock)
+            // Fetch server list from API
             if (_serverList.value.isEmpty())
                 _serverList.value = repository.fetchServers()
 
-            // Auto-create Cloudflare profile if no configs exist
-            if (_configs.value.isEmpty()) {
+            // Free tier: auto-create WARP config if no config exists
+            if (_currentConfig.value == null) {
                 createCloudflareConfig()
             }
         }
@@ -78,10 +81,25 @@ class HomeViewModel @Inject constructor(
     
     fun createCloudflareConfig() {
         viewModelScope.launch {
-            // TODO: partial loading state
+            Log.d("HomeViewModel", "createCloudflareConfig() called")
+
+            // Stop current tunnel if running
+            withContext(NonCancellable) {
+                if (vpnState.value == Tunnel.State.UP) {
+                    TunnelManager.stopTunnel()
+                }
+            }
+
+            _isProvisioning.value = true
             val config = repository.createCloudflareConfig()
             if (config != null) {
+                Log.d("HomeViewModel", "WARP config created: ${config.endpoint}")
                 selectConfig(config)
+                _isProvisioning.value = false
+                TunnelManager.startTunnel(config)
+            } else {
+                Log.e("HomeViewModel", "WARP config creation FAILED (null)")
+                _isProvisioning.value = false
             }
         }
     }

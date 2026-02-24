@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,12 +23,23 @@ import com.wireguard.android.backend.Tunnel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServerListScreen(
-    viewModel: HomeViewModel = hiltViewModel(),
+    viewModel: HomeViewModel,
     onNavigateBack: () -> Unit,
     onNavigateToAdd: () -> Unit
 ) {
     val serverList by viewModel.serverList.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
+    val isPremium by viewModel.isPremium.collectAsState()
+
+    var showPaywall by remember { mutableStateOf(false) }
+
+    // Paywall dialog
+    if (showPaywall) {
+        PaywallDialog(
+            billingManager = viewModel.billingManager,
+            onDismiss = { showPaywall = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -54,16 +66,93 @@ fun ServerListScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // FREE section
+                item {
+                    Text(
+                        text = "FREE",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                    )
+                }
+                item {
+                    val isWarpSelected = currentConfig?.name == "Cloudflare WARP"
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isWarpSelected) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (!isWarpSelected) {
+                                    viewModel.createCloudflareConfig()
+                                }
+                                onNavigateBack()
+                            },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(text = "≡ƒîÉ", fontSize = 32.sp, modifier = Modifier.padding(end = 16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Cloudflare WARP",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Nearest location ΓÇó Free",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            if (isWarpSelected) {
+                                Icon(Icons.Filled.Check, "Selected", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                    }
+                }
+
+                // PREMIUM section
+                item {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = "PREMIUM",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (!isPremium) {
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "≡ƒöÆ",
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
                 items(serverList) { server ->
                     val isSelected =
-                        currentConfig?.name == "${server.flag} ${server.city}" // Simple check
+                        currentConfig?.name == "${server.flag} ${server.city}"
 
                     ServerItemCard(
                         server = server,
                         isSelected = isSelected,
+                        isLocked = !isPremium,
                         onClick = {
-                            viewModel.connectToServer(server)
-                            onNavigateBack()
+                            if (!isPremium) {
+                                showPaywall = true
+                            } else {
+                                if (!isSelected) {
+                                    viewModel.connectToServer(server)
+                                }
+                                onNavigateBack()
+                            }
                         }
                     )
                 }
@@ -76,6 +165,7 @@ fun ServerListScreen(
 fun ServerItemCard(
     server: com.example.androidvpn.model.ServerItemDto,
     isSelected: Boolean,
+    isLocked: Boolean = false,
     onClick: () -> Unit
 ) {
     Card(
@@ -91,52 +181,43 @@ fun ServerItemCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Use local calculation for flag to avoid API encoding issues
-                val flagEmoji = remember(server.id) {
-                    // Extract country code from ID (us-iowa -> US) or use a mapping
-                    // Assuming ID starts with country code like 'us-iowa', 'sg-singapore'
-                    val code = server.id.take(2).uppercase()
-                    calculateFlagEmoji(code)
-                }
+            // Use local calculation for flag to avoid API encoding issues
+            val flagEmoji = remember(server.id) {
+                val code = server.id.take(2).uppercase()
+                calculateFlagEmoji(code)
+            }
 
+            Text(
+                text = flagEmoji,
+                fontSize = 32.sp,
+                modifier = Modifier.padding(end = 16.dp)
+            )
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = flagEmoji,
-                    fontSize = 32.sp,
-                    modifier = Modifier.padding(end = 16.dp)
+                    text = server.country,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
+                Text(
+                    text = server.city,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = server.country,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    )
-                    Text(
-                        text = server.city,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (server.premium) {
-                    Icon(
-                        imageVector = Icons.Filled.Warning, // Replace with Crown/Star icon
-                        contentDescription = "Premium",
-                        tint = Color(0xFFFFD700)
-                    )
-                }
-
-                if (isSelected) {
-                    Icon(
-                        imageVector = Icons.Filled.Check,
-                        contentDescription = "Selected",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+            if (isLocked) {
+                Icon(
+                    imageVector = Icons.Filled.Lock,
+                    contentDescription = "Premium",
+                    tint = Color(0xFFFFD700)
+                )
+            } else if (isSelected) {
+                Icon(
+                    imageVector = Icons.Filled.Check,
+                    contentDescription = "Selected",
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         }
     }

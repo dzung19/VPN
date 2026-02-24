@@ -32,12 +32,10 @@ data class AccountResponse(
 )
 
 data class WireGuardConfigResponse(
-    val interface_data: InterfaceData,
-    val peers: List<PeerData>
-) {
     @SerializedName("interface") // interface is a keyword in Kotlin
-    val interfaceField: InterfaceData = interface_data
-}
+    val interfaceField: InterfaceData,
+    val peers: List<PeerData>
+)
 
 data class InterfaceData(
     val addresses: Addresses

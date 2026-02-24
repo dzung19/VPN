@@ -2,6 +2,7 @@ package com.example.androidvpn.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import com.example.androidvpn.model.ServerConfig
 import com.wireguard.crypto.KeyPair
 import kotlinx.coroutines.Dispatchers
@@ -109,7 +110,7 @@ class ServerRepository @Inject constructor(
         val keys = generateKeyPair()
         val privateKey = keys.privateKey.toBase64()
         val publicKey = keys.publicKey.toBase64()
-        
+        Log.d("CloudflareService", "Failed to register with Cloudflare $keys")
         return cloudflareService.registerAndGetConfig(privateKey, publicKey)?.also { config ->
             addConfig(config)
         }

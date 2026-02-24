@@ -43,8 +43,8 @@ fun HomeScreen(
     LaunchedEffect(currentConfig?.endpoint) {
         currentConfig?.endpoint?.let { viewModel.measureLatency(it) }
     }
-    
-    val context = LocalContext.current
+
+    LocalContext.current
     
     // VPN Permission Launcher
     val vpnPermissionLauncher = rememberLauncherForActivityResult(
@@ -81,7 +81,7 @@ fun HomeScreen(
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
