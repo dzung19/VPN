@@ -189,7 +189,7 @@ class HomeViewModel @Inject constructor(
                     // Simple TCP connect to Cloudflare DNS ΓÇö fast, reliable, no SSL
                     val socket = java.net.Socket()
                     val start = System.currentTimeMillis()
-                    socket.connect(java.net.InetSocketAddress("1.1.1.1", 80), 3000)
+                    socket.connect(InetSocketAddress("1.1.1.1", 80), 3000)
                     val elapsed = System.currentTimeMillis() - start
                     socket.close()
                     elapsed
@@ -200,7 +200,7 @@ class HomeViewModel @Inject constructor(
                 withContext(Dispatchers.Main) {
                     _latencyMs.value = ms
                 }
-                kotlinx.coroutines.delay(40_000L)
+                delay(40_000L)
             }
         }
     }

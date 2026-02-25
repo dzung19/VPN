@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 import androidx.core.content.edit
+import com.example.androidvpn.model.ServerItemDto
 
 @Singleton
 class ServerRepository @Inject constructor(
@@ -118,7 +119,7 @@ class ServerRepository @Inject constructor(
     // --- New API Integration ---
 
     // Get list of servers from API
-    suspend fun fetchServers(): List<com.example.androidvpn.model.ServerItemDto> = withContext(Dispatchers.IO) {
+    suspend fun fetchServers(): List<ServerItemDto> = withContext(Dispatchers.IO) {
         try {
             val response = vpnApiService.getServers()
             response.servers
@@ -129,7 +130,7 @@ class ServerRepository @Inject constructor(
     }
 
     // Connect to a specific server
-    suspend fun connectToServer(serverItem: com.example.androidvpn.model.ServerItemDto): ServerConfig? = withContext(Dispatchers.IO) {
+    suspend fun connectToServer(serverItem: ServerItemDto): ServerConfig? = withContext(Dispatchers.IO) {
         val keys = getOrCreateClientKeys()
 
         try {

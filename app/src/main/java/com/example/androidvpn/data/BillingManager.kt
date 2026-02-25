@@ -17,7 +17,7 @@ import javax.inject.Singleton
 
 @Singleton
 class BillingManager @Inject constructor(
-    @ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context
 ) : PurchasesUpdatedListener {
 
     companion object {
