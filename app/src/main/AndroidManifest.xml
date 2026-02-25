@@ -8,6 +8,14 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Query apps with launcher icon for split tunneling (no QUERY_ALL_PACKAGES needed) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".VpnApp"
         android:networkSecurityConfig="@xml/network_security_config"

@@ -5,7 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface CloudflareApi {
-    @POST("v0a2404/reg")
+    @POST("v0a1922/reg")
     suspend fun register(@Body body: RegistrationRequest): RegistrationResponse
 }
 

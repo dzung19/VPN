@@ -23,6 +23,8 @@ class BillingManager @Inject constructor(
     companion object {
         private const val TAG = "BillingManager"
         const val PREMIUM_PRODUCT_ID = "premium_vpn_monthly"
+        // Set to false for production!
+        const val TEST_MODE = true
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -116,6 +118,13 @@ class BillingManager @Inject constructor(
     }
 
     fun launchPurchaseFlow(activity: Activity) {
+        // TEST MODE: bypass Google Play and directly unlock premium
+        if (TEST_MODE) {
+            Log.d(TAG, "TEST MODE: Unlocking premium without Google Play")
+            _isPremium.value = true
+            return
+        }
+
         val details = _productDetails.value
         if (details == null) {
             Log.e(TAG, "No product details available")

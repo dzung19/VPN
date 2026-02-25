@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.androidvpn.ui.AddServerScreen
 import com.example.androidvpn.ui.HomeScreen
 import com.example.androidvpn.ui.ServerListScreen
+import com.example.androidvpn.ui.SplitTunnelScreen
 import com.example.androidvpn.ui.TermsOfServiceScreen
 
 import dagger.hilt.android.AndroidEntryPoint
@@ -56,7 +57,8 @@ class MainActivity : ComponentActivity() {
                             val sharedViewModel: com.example.androidvpn.ui.HomeViewModel = hiltViewModel(backStackEntry)
                             HomeScreen(
                                 viewModel = sharedViewModel,
-                                onNavigateToServerList = { navController.navigate("server_list") }
+                                onNavigateToServerList = { navController.navigate("server_list") },
+                                onNavigateToSplitTunnel = { navController.navigate("split_tunnel") }
                             )
                         }
                         composable("server_list") {
@@ -73,6 +75,16 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("add_server") {
                             AddServerScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("split_tunnel") {
+                            val parentEntry = remember(it) {
+                                navController.getBackStackEntry("home")
+                            }
+                            val sharedViewModel: com.example.androidvpn.ui.HomeViewModel = hiltViewModel(parentEntry)
+                            SplitTunnelScreen(
+                                repository = sharedViewModel.splitTunnelRepository,
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }

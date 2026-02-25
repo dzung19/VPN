@@ -17,7 +17,7 @@ import androidx.core.content.edit
 @Singleton
 class ServerRepository @Inject constructor(
     @ApplicationContext context: Context,
-    private val cloudflareService: CloudflareService,
+    internal val cloudflareService: CloudflareService,
     private val vpnApiService: VpnApiService
 ) {
     private val prefs: SharedPreferences = context.getSharedPreferences("vpn_configs", Context.MODE_PRIVATE)
@@ -110,7 +110,6 @@ class ServerRepository @Inject constructor(
         val keys = generateKeyPair()
         val privateKey = keys.privateKey.toBase64()
         val publicKey = keys.publicKey.toBase64()
-        Log.d("CloudflareService", "Failed to register with Cloudflare $keys")
         return cloudflareService.registerAndGetConfig(privateKey, publicKey)?.also { config ->
             addConfig(config)
         }
@@ -140,9 +139,9 @@ class ServerRepository @Inject constructor(
             )
             try {
                 val regResponse = vpnApiService.registerKey(registerRequest)
-                android.util.Log.d("ServerRepository", "Key registration: ${regResponse.status}")
+                Log.d("ServerRepository", "Key registration: ${regResponse.status}")
             } catch (e: Exception) {
-                android.util.Log.e("ServerRepository", "Key registration failed: ${e.message}")
+                Log.e("ServerRepository", "Key registration failed: ${e.message}")
             }
 
             // Step 2: Connect via Worker API (Worker handles peer registration via tunnel)
@@ -152,7 +151,7 @@ class ServerRepository @Inject constructor(
                 clientPublicKey = keys.publicKey.toBase64()
             )
             val response = vpnApiService.connect(request = connectRequest)
-            android.util.Log.d("ServerRepository", "Worker API: assignedIP=${response.assignedIP}, endpoint=${response.endpoint}")
+            Log.d("ServerRepository", "Worker API: assignedIP=${response.assignedIP}, endpoint=${response.endpoint}")
 
             val config = ServerConfig(
                 name = "${serverItem.flag} ${serverItem.city}",
@@ -173,7 +172,7 @@ class ServerRepository @Inject constructor(
 
             return@withContext config
         } catch (e: Exception) {
-            android.util.Log.e("ServerRepository", "connectToServer failed: ${e.message}")
+            Log.e("ServerRepository", "connectToServer failed: ${e.message}")
             e.printStackTrace()
             null
         }

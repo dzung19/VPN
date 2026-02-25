@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.androidvpn.data.BillingManager
 import com.example.androidvpn.data.ServerRepository
+import com.example.androidvpn.data.SplitTunnelRepository
 import com.example.androidvpn.data.TunnelManager
 import com.example.androidvpn.model.ServerConfig
 import com.example.androidvpn.model.ServerItemDto
@@ -31,6 +32,7 @@ class HomeViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: ServerRepository,
     val billingManager: BillingManager,
+    val splitTunnelRepository: SplitTunnelRepository,
 ) : ViewModel() {
 
     // Billing state
@@ -91,16 +93,64 @@ class HomeViewModel @Inject constructor(
             }
 
             _isProvisioning.value = true
-            val config = repository.createCloudflareConfig()
-            if (config != null) {
-                Log.d("HomeViewModel", "WARP config created: ${config.endpoint}")
+            
+            // Try multiple endpoints until one actually passes traffic
+            val maxRetries = repository.cloudflareService.getEndpointCount()
+            var connected = false
+            
+            for (attempt in 1..maxRetries) {
+                val config = repository.createCloudflareConfig()
+                if (config == null) {
+                    Log.e("HomeViewModel", "WARP config creation FAILED (null)")
+                    continue
+                }
+                
+                Log.d("HomeViewModel", "WARP attempt $attempt/$maxRetries: ${config.endpoint}")
                 selectConfig(config)
-                _isProvisioning.value = false
-                TunnelManager.startTunnel(config)
-            } else {
-                Log.e("HomeViewModel", "WARP config creation FAILED (null)")
-                _isProvisioning.value = false
+                
+                try {
+                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps())
+                    
+                    // Wait a moment for tunnel interface to come up
+                    delay(2000)
+                    
+                    // Verify ACTUAL connectivity (not just tunnel state)
+                    // WireGuard reports UP before handshake completes!
+                    val reachable = withContext(Dispatchers.IO) {
+                        try {
+                            val socket = java.net.Socket()
+                            socket.connect(java.net.InetSocketAddress("1.1.1.1", 80), 6000)
+                            socket.close()
+                            true
+                        } catch (t: Throwable) {
+                            Log.d("HomeViewModel", "Connectivity check failed: ${t.javaClass.simpleName}")
+                            false
+                        }
+                    }
+                    
+                    if (reachable) {
+                        Log.d("HomeViewModel", "WARP connected on attempt $attempt: ${config.endpoint}")
+                        connected = true
+                        break
+                    }
+                    
+                    // Handshake failed, try next endpoint
+                    Log.w("HomeViewModel", "WARP no connectivity on ${config.endpoint}, trying next...")
+                    TunnelManager.stopTunnel()
+                    delay(500)
+                    
+                } catch (e: Exception) {
+                    Log.e("HomeViewModel", "WARP tunnel error: ${e.message}")
+                    try { TunnelManager.stopTunnel() } catch (_: Throwable) {}
+                }
             }
+            
+            if (!connected) {
+                Log.e("HomeViewModel", "WARP: All endpoints failed after $maxRetries attempts")
+                try { TunnelManager.stopTunnel() } catch (_: Throwable) {}
+            }
+            
+            _isProvisioning.value = false
         }
     }
     
@@ -122,26 +172,43 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun measureLatency(endpoint: String? = null) {
-        val target = endpoint ?: _currentConfig.value?.endpoint ?: return
-        viewModelScope.launch {
-            _latencyMs.value = null // show loading
-            val ms = withContext(Dispatchers.IO) {
-                try {
-                    val parts = target.split(":")
-                    val host = parts[0]
-                    val port = InetAddress.getByName(host)
+    private var latencyJob: kotlinx.coroutines.Job? = null
+
+    fun startLatencyMonitor(endpoint: String? = null) {
+        latencyJob?.cancel()
+        // Use exception handler to prevent ANY crash from latency measurement
+        val handler = kotlinx.coroutines.CoroutineExceptionHandler { _, t ->
+            Log.d("Latency", "Coroutine exception: ${t.javaClass.simpleName}")
+        }
+        latencyJob = viewModelScope.launch(Dispatchers.IO + handler) {
+            // Wait for tunnel to stabilize before measuring
+            delay(5000L)
+            
+            while (true) {
+                val ms = try {
+                    // Simple TCP connect to Cloudflare DNS ΓÇö fast, reliable, no SSL
+                    val socket = java.net.Socket()
                     val start = System.currentTimeMillis()
-                    port.isReachable(5000)
+                    socket.connect(java.net.InetSocketAddress("1.1.1.1", 80), 3000)
                     val elapsed = System.currentTimeMillis() - start
+                    socket.close()
                     elapsed
-                } catch (e: Exception) {
-                    Log.d("Latency", "$e ms") // Debug log
+                } catch (t: Throwable) {
+                    Log.d("Latency", "Failed: ${t.javaClass.simpleName}")
                     -1L
                 }
+                withContext(Dispatchers.Main) {
+                    _latencyMs.value = ms
+                }
+                kotlinx.coroutines.delay(40_000L)
             }
-            _latencyMs.value = ms
         }
+    }
+
+    fun stopLatencyMonitor() {
+        latencyJob?.cancel()
+        latencyJob = null
+        _latencyMs.value = null
     }
 
     // Connect to a specific server item (from UI)
@@ -159,7 +226,7 @@ class HomeViewModel @Inject constructor(
                     _currentConfig.value = config
                     // VM adds peer instantly via HTTP API, no delay needed
                     _isProvisioning.value = false
-                    TunnelManager.startTunnel(config)
+                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps())
                 } else {
                     _isProvisioning.value = false
                 }
@@ -210,7 +277,16 @@ class HomeViewModel @Inject constructor(
             if (vpnState.value == Tunnel.State.UP) {
                 TunnelManager.stopTunnel()
             } else {
-                TunnelManager.startTunnel(config)
+                // WARP configs go stale after disconnect ΓÇö always re-register
+                if (config.name == "Cloudflare WARP") {
+                    Log.d("HomeViewModel", "WARP detected, re-registering fresh keys...")
+                    createCloudflareConfig()
+                    return@launch
+                }
+                
+                val excluded = splitTunnelRepository.getExcludedApps()
+                Log.d("HomeViewModel", "toggleVpn: excluded apps = ${excluded.size}")
+                TunnelManager.startTunnel(config, excluded)
             }
         }
     }

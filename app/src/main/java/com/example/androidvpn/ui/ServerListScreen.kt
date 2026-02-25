@@ -96,7 +96,7 @@ fun ServerListScreen(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "≡ƒîÉ", fontSize = 32.sp, modifier = Modifier.padding(end = 16.dp))
+                            Text(text = "\uD83C\uDF10", fontSize = 32.sp, modifier = Modifier.padding(end = 16.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Cloudflare WARP",
@@ -104,7 +104,7 @@ fun ServerListScreen(
                                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                                 )
                                 Text(
-                                    text = "Nearest location ΓÇó Free",
+                                    text = "Nearest location • Free",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -130,7 +130,7 @@ fun ServerListScreen(
                         if (!isPremium) {
                             Spacer(Modifier.width(8.dp))
                             Text(
-                                text = "≡ƒöÆ",
+                                text = "\uD83D\uDD12",
                                 fontSize = 12.sp
                             )
                         }
@@ -225,7 +225,7 @@ fun ServerItemCard(
 
 // Helper to convert country code (e.g. "US") to Flag Emoji (≡ƒç║≡ƒç╕)
 fun calculateFlagEmoji(countryCode: String): String {
-    if (countryCode.length != 2) return "≡ƒîÉ"
+    if (countryCode.length != 2) return "\uD83C\uDF10"
     val firstLetter = Character.codePointAt(countryCode, 0) - 0x41 + 0x1F1E6
     val secondLetter = Character.codePointAt(countryCode, 1) - 0x41 + 0x1F1E6
     return String(Character.toChars(firstLetter)) + String(Character.toChars(secondLetter))

@@ -15,7 +15,33 @@ import javax.inject.Inject
 class CloudflareService @Inject constructor(
     private val api: CloudflareApi
 ) {
-    suspend fun registerAndGetConfig(privateKey: String, publicKey: String): ServerConfig? {
+    // Cloudflare WARP endpoints - different IPs and ports to try
+    // Ports 500/4500 are IPSec standard (rarely blocked by firewalls)
+    // Port 2408 is WARP default
+    private val warpEndpoints = listOf(
+        "162.159.193.1:2408",
+        "162.159.192.1:2408",
+        "162.159.193.1:500",
+        "162.159.192.1:500",
+        "162.159.193.1:4500",
+        "162.159.192.1:4500",
+        "188.114.99.0:2408"
+    )
+    private var endpointIndex = 0
+
+    fun getNextEndpoint(): String {
+        val endpoint = warpEndpoints[endpointIndex % warpEndpoints.size]
+        endpointIndex++
+        return endpoint
+    }
+
+    fun getEndpointCount() = warpEndpoints.size
+
+    suspend fun registerAndGetConfig(
+        privateKey: String,
+        publicKey: String,
+        forcedEndpoint: String? = null
+    ): ServerConfig? {
         return try {
             val timestamp = getIso8601Date()
             val installId = java.util.UUID.randomUUID().toString()
@@ -33,8 +59,7 @@ class CloudflareService @Inject constructor(
             val response = api.register(request)
             Log.d(TAG, "Registration response ID: ${response.id}")
             Log.d(TAG, "Account type: ${response.account.account_type}")
-            
-            // Cloudflare returns IP v4 and v6. 
+
             val addressV4 = response.config.interfaceField.addresses.v4
             val addressV6 = response.config.interfaceField.addresses.v6
             Log.d(TAG, "Addresses: v4=$addressV4, v6=$addressV6")
@@ -50,30 +75,25 @@ class CloudflareService @Inject constructor(
                 return null
             }
             Log.d(TAG, "Peer publicKey: ${peer.public_key.take(20)}...")
-            Log.d(TAG, "Peer endpoint: host=${peer.endpoint.host}, v4=${peer.endpoint.v4}, v6=${peer.endpoint.v6}")
-            
-            // Force known IP endpoint to avoid DNS issues during handshake
-            val endpointHost = peer.endpoint.host
-            val resolvedEndpoint = if (endpointHost.contains("engage.cloudflareclient.com")) {
-                "162.159.192.1:2408"
-            } else {
-                endpointHost
-            }
-            Log.d(TAG, "Resolved endpoint: $resolvedEndpoint")
+
+            // Use forced endpoint or rotate through available endpoints
+            val resolvedEndpoint = forcedEndpoint ?: getNextEndpoint()
+            Log.d(TAG, "Using endpoint: $resolvedEndpoint")
 
             val config = ServerConfig(
                 name = "Cloudflare WARP",
                 privateKey = privateKey,
                 address = addresses, 
-                dns = "1.1.1.1, 2606:4700:4700::1111", 
+                dns = "1.1.1.1, 1.0.0.1",
                 publicKey = peer.public_key,
                 endpoint = resolvedEndpoint,
-                allowedIps = "0.0.0.0/0, ::/0"
+                allowedIps = "0.0.0.0/0, ::/0",
+                mtu = 1280
             )
-            android.util.Log.d(TAG, "WARP config created successfully: address=$addresses, endpoint=$resolvedEndpoint")
+            Log.d(TAG, "WARP config created: endpoint=$resolvedEndpoint")
             config
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "WARP registration FAILED: ${e.message}", e)
+            Log.e(TAG, "WARP registration FAILED: ${e.message}", e)
             null
         }
     }
@@ -83,6 +103,7 @@ class CloudflareService @Inject constructor(
         df.timeZone = TimeZone.getTimeZone("UTC")
         return df.format(Date())
     }
+
     companion object {
         const val TAG = "CloudflareService"
     }

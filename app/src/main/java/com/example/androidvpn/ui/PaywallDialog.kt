@@ -60,10 +60,10 @@ fun PaywallDialog(
 
                 // Benefits
                 listOf(
-                    "≡ƒîì Global server locations",
-                    "ΓÜí Faster connection speeds",
-                    "≡ƒöÆ Dedicated VPN servers",
-                    "≡ƒÄü 3-day free trial"
+                    "\uD83C\uDF0D Global server locations",
+                    "\u26A1 Faster connection speeds",
+                    "\uD83D\uDD12 Dedicated VPN servers",
+                    "\uD83C\uDF81 3-day free trial"
                 ).forEach { benefit ->
                     Text(
                         text = benefit,

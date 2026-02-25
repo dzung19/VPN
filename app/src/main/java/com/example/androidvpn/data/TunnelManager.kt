@@ -85,17 +85,13 @@ object TunnelManager {
         manager?.cancel(NOTIFICATION_ID)
     }
 
-    suspend fun startTunnel(config: ServerConfig) = withContext(Dispatchers.IO) {
+    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet()) = withContext(Dispatchers.IO) {
         try {
-            // Ensure fresh backend instance to avoid stale service connections
-//            if (appContext != null) {
-//                backend = GoBackend(appContext!!)
-//            }
-
-            val wgConfig = buildWireGuardConfig(config)
+            val wgConfig = buildWireGuardConfig(config, excludedApps)
 
             // Log the config for debugging (Redact private key)
             Log.d(TAG, "Starting Tunnel with config: Interface=${wgConfig.`interface`}, Peers=${wgConfig.peers}")
+            Log.d(TAG, "Excluded apps: ${excludedApps.size}")
 
             val newTunnel = InternalTunnel("wg0")
             currentTunnel = newTunnel
@@ -133,7 +129,7 @@ object TunnelManager {
         }
     }
 
-    private fun buildWireGuardConfig(serverConfig: ServerConfig): Config {
+    private fun buildWireGuardConfig(serverConfig: ServerConfig, excludedApps: Set<String> = emptySet()): Config {
         val interfaceBuilder = Interface.Builder()
 
         // Parse addresses
@@ -162,6 +158,20 @@ object TunnelManager {
              interfaceBuilder.parsePrivateKey(serverConfig.privateKey)
         } else {
             throw IllegalArgumentException("Private Key Not Found")
+        }
+
+        // Apply split tunneling - exclude selected apps
+        excludedApps.forEach { packageName ->
+            try {
+                interfaceBuilder.excludeApplication(packageName)
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not exclude app: $packageName", e)
+            }
+        }
+
+        // Set MTU if specified (1280 recommended for WARP)
+        if (serverConfig.mtu > 0) {
+            interfaceBuilder.setMtu(serverConfig.mtu)
         }
 
         val peerBuilder = Peer.Builder()

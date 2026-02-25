@@ -12,6 +12,7 @@ data class ServerConfig(
     val publicKey: String = "", // Peer Public Key
     val endpoint: String = "", // Peer Endpoint (IP:Port)
     val allowedIps: String = "0.0.0.0/0, ::/0",
+    val mtu: Int = 0, // 0 = auto, 1280 recommended for WARP
     
     // UI Metadata
     val country: String = "",
