@@ -416,14 +416,14 @@ private fun ServerCard(
                         // Latency badge
                         val latencyText = when {
                             latencyMs == null -> "⏳"
-                            latencyMs!! < 0 -> "--"
+                            latencyMs < 0 -> "--"
                             else -> "${latencyMs}ms"
                         }
                         val latencyColor = when {
                             latencyMs == null -> Color.Gray
-                            latencyMs!! < 0 -> Color.Gray
-                            latencyMs!! < 100 -> Color(0xFF00C853) // Green
-                            latencyMs!! < 200 -> Color(0xFFFFA726) // Orange
+                            latencyMs < 0 -> Color.Gray
+                            latencyMs < 100 -> Color(0xFF00C853) // Green
+                            latencyMs < 200 -> Color(0xFFFFA726) // Orange
                             else -> Color(0xFFFF5252) // Red
                         }
                         Surface(

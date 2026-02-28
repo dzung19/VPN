@@ -18,9 +18,11 @@ import com.wireguard.config.InetNetwork
 import com.wireguard.config.Interface
 import com.wireguard.config.Peer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
 
@@ -53,11 +55,20 @@ object TunnelManager {
             description = "Shows when VPN is connected"
             setShowBadge(false)
         }
-        val manager = appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        val manager =
+            appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         manager?.createNotificationChannel(channel)
     }
 
-    private fun showVpnNotification(serverName: String) {
+    private var speedMonitorJob: kotlinx.coroutines.Job? = null
+    private var lastRxBytes: Long = 0
+    private var lastTxBytes: Long = 0
+
+    private fun showVpnNotification(
+        serverName: String,
+        rxSpeed: String = "0 B/s",
+        txSpeed: String = "0 B/s"
+    ) {
         val ctx = appContext ?: return
         val intent = Intent(ctx, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -67,13 +78,23 @@ object TunnelManager {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val disconnectIntent = Intent(ctx, VpnActionReceiver::class.java).apply {
+            action = "DISCONNECT_VPN"
+        }
+        val disconnectPendingIntent = PendingIntent.getBroadcast(
+            ctx, 1, disconnectIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("VPN Connected")
-            .setContentText("Connected to $serverName")
+            .setContentTitle("VPN Connected: $serverName")
+            .setContentText("\u2193 $rxSpeed  \u2191 $txSpeed")
             .setOngoing(true) // Can't be swiped away
+            .setOnlyAlertOnce(true) // Don't sound/vibrate on every speed update
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(pendingIntent)
+            .addAction(R.drawable.ic_launcher_foreground, "Disconnect", disconnectPendingIntent)
             .build()
 
         val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -81,37 +102,87 @@ object TunnelManager {
     }
 
     private fun hideVpnNotification() {
-        val manager = appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+        val manager =
+            appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         manager?.cancel(NOTIFICATION_ID)
     }
 
-    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet()) = withContext(Dispatchers.IO) {
-        try {
-            val wgConfig = buildWireGuardConfig(config, excludedApps)
+    private fun startSpeedMonitor(serverName: String) {
+        speedMonitorJob?.cancel()
+        lastRxBytes = 0
+        lastTxBytes = 0
 
-            // Log the config for debugging (Redact private key)
-            Log.d(TAG, "Starting Tunnel with config: Interface=${wgConfig.`interface`}, Peers=${wgConfig.peers}")
-            Log.d(TAG, "Excluded apps: ${excludedApps.size}")
+        speedMonitorJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+            while (tunnelState.value == Tunnel.State.UP) {
+                try {
+                    val stats = backend?.getStatistics(currentTunnel!!)
+                    if (stats != null) {
+                        val totalRx = stats.totalRx()
+                        val totalTx = stats.totalTx()
 
-            val newTunnel = InternalTunnel("wg0")
-            currentTunnel = newTunnel
+                        if (lastRxBytes > 0 || lastTxBytes > 0) {
+                            val rxDelta = totalRx - lastRxBytes
+                            val txDelta = totalTx - lastTxBytes
 
-            // Use setState instead of apply (which conflicts with Kotlin's scope function)
-            backend?.setState(newTunnel, Tunnel.State.UP, wgConfig)
-            _tunnelState.value = Tunnel.State.UP
-            Log.d(TAG, "Tunnel Started: ${config.name}")
+                            val rxSpeed = formatBytes(rxDelta) + "/s"
+                            val txSpeed = formatBytes(txDelta) + "/s"
 
-            // Show persistent notification
-            showVpnNotification(config.name)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start tunnel: ${e.message}", e)
-            _tunnelState.value = Tunnel.State.DOWN
-            hideVpnNotification()
-            if (e is com.wireguard.android.backend.BackendException) {
-                Log.e(TAG, "Backend Reason: ${e.reason}", e)
+                            showVpnNotification(serverName, rxSpeed, txSpeed)
+                        }
+
+                        lastRxBytes = totalRx
+                        lastTxBytes = totalTx
+                    }
+                } catch (e: Exception) {
+                    // Ignore transient errors reading stats
+                }
+                delay(1000L)
             }
         }
     }
+
+    private fun formatBytes(bytes: Long): String {
+        if (bytes < 1024) return "$bytes B"
+        val kb = bytes / 1024.0
+        if (kb < 1024) return String.format("%.1f KB", kb)
+        val mb = kb / 1024.0
+        if (mb < 1024) return String.format("%.1f MB", mb)
+        return String.format("%.1f GB", mb / 1024.0)
+    }
+
+    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet()) =
+        withContext(Dispatchers.IO) {
+            try {
+                val wgConfig = buildWireGuardConfig(config, excludedApps)
+
+                // Log the config for debugging (Redact private key)
+                Log.d(
+                    TAG,
+                    "Starting Tunnel with config: Interface=${wgConfig.`interface`}, Peers=${wgConfig.peers}"
+                )
+                Log.d(TAG, "Excluded apps: ${excludedApps.size}")
+
+                val newTunnel = InternalTunnel("wg0")
+                currentTunnel = newTunnel
+
+                // Use setState instead of apply (which conflicts with Kotlin's scope function)
+                backend?.setState(newTunnel, Tunnel.State.UP, wgConfig)
+                _tunnelState.value = Tunnel.State.UP
+                Log.d(TAG, "Tunnel Started: ${config.name}")
+
+                // Show persistent notification
+                showVpnNotification(config.name)
+                startSpeedMonitor(config.name)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to start tunnel: ${e.message}", e)
+                _tunnelState.value = Tunnel.State.DOWN
+                speedMonitorJob?.cancel()
+                hideVpnNotification()
+                if (e is com.wireguard.android.backend.BackendException) {
+                    Log.e(TAG, "Backend Reason: ${e.reason}", e)
+                }
+            }
+        }
 
     suspend fun stopTunnel() = withContext(Dispatchers.IO) {
         try {
@@ -121,15 +192,20 @@ object TunnelManager {
             _tunnelState.value = Tunnel.State.DOWN
             Log.d(TAG, "Tunnel Stopped")
             currentTunnel = null
+            speedMonitorJob?.cancel()
             hideVpnNotification()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to stop tunnel: ${e.message}", e)
             _tunnelState.value = Tunnel.State.DOWN
+            speedMonitorJob?.cancel()
             hideVpnNotification()
         }
     }
 
-    private fun buildWireGuardConfig(serverConfig: ServerConfig, excludedApps: Set<String> = emptySet()): Config {
+    private fun buildWireGuardConfig(
+        serverConfig: ServerConfig,
+        excludedApps: Set<String> = emptySet()
+    ): Config {
         val interfaceBuilder = Interface.Builder()
 
         // Parse addresses
@@ -145,17 +221,17 @@ object TunnelManager {
 
         // Parse DNS
         serverConfig.dns.split(",").map { it.trim() }.forEach {
-             if (it.isNotEmpty()) {
-                 try {
-                     interfaceBuilder.addDnsServer(InetAddress.getByName(it))
-                 } catch (e: Exception) {
-                     Log.e(TAG, "Invalid DNS: $it", e)
-                 }
-             }
+            if (it.isNotEmpty()) {
+                try {
+                    interfaceBuilder.addDnsServer(InetAddress.getByName(it))
+                } catch (e: Exception) {
+                    Log.e(TAG, "Invalid DNS: $it", e)
+                }
+            }
         }
 
         if (serverConfig.privateKey.isNotEmpty()) {
-             interfaceBuilder.parsePrivateKey(serverConfig.privateKey)
+            interfaceBuilder.parsePrivateKey(serverConfig.privateKey)
         } else {
             throw IllegalArgumentException("Private Key Not Found")
         }
@@ -184,8 +260,8 @@ object TunnelManager {
             if (it.isNotEmpty()) {
                 try {
                     peerBuilder.addAllowedLib(InetNetwork.parse(it))
-                } catch(e: Exception) {
-                     Log.e(TAG, "Invalid AllowedIP: $it", e)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Invalid AllowedIP: $it", e)
                 }
             }
         }
@@ -198,9 +274,15 @@ object TunnelManager {
             .addPeer(peerBuilder.build())
             .build()
 
-        Log.d(TAG, "Final WG Config Content:\n" +
-            "Interface: [Address: ${config.`interface`.addresses}, DNS: ${config.`interface`.dnsServers}, PrivateKey: REDACTED]\n" +
-            "Peer: [PublicKey: ${config.peers[0].publicKey.toBase64()}, Endpoint: ${config.peers[0].endpoint.orElse(null)}, AllowedIPs: ${config.peers[0].allowedIps}]")
+        Log.d(
+            TAG, "Final WG Config Content:\n" +
+                    "Interface: [Address: ${config.`interface`.addresses}, DNS: ${config.`interface`.dnsServers}, PrivateKey: REDACTED]\n" +
+                    "Peer: [PublicKey: ${config.peers[0].publicKey.toBase64()}, Endpoint: ${
+                        config.peers[0].endpoint.orElse(
+                            null
+                        )
+                    }, AllowedIPs: ${config.peers[0].allowedIps}]"
+        )
 
         return config
     }

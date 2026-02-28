@@ -50,6 +50,14 @@
             </intent-filter>
         </service>
 
+        <receiver
+            android:name=".data.VpnActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="DISCONNECT_VPN" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

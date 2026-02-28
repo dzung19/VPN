@@ -15,17 +15,31 @@ import javax.inject.Inject
 class CloudflareService @Inject constructor(
     private val api: CloudflareApi
 ) {
-    // Cloudflare WARP endpoints - different IPs and ports to try
-    // Ports 500/4500 are IPSec standard (rarely blocked by firewalls)
-    // Port 2408 is WARP default
+    // Cloudflare WARP endpoints - official gateway IPs across multiple ranges
+    // Ports: 2408 (WARP default), 500/4500 (IPSec standard, rarely blocked)
+    // IP ranges: 162.159.192-193.x (primary), 188.114.96-99.x (secondary)
+    // IPv6 ranges (2606:4700:d0-d1::/48) skipped ΓÇö unreliable on many mobile networks
     private val warpEndpoints = listOf(
+        // Primary range (162.159.x)
         "162.159.193.1:2408",
         "162.159.192.1:2408",
         "162.159.193.1:500",
         "162.159.192.1:500",
         "162.159.193.1:4500",
         "162.159.192.1:4500",
-        "188.114.99.0:2408"
+        // Secondary range (188.114.x) ΓÇö 4 subnets
+        "188.114.96.1:2408",
+        "188.114.97.1:2408",
+        "188.114.98.1:2408",
+        "188.114.99.1:2408",
+        "188.114.96.1:500",
+        "188.114.97.1:500",
+        "188.114.98.1:500",
+        "188.114.99.1:500",
+        "188.114.96.1:4500",
+        "188.114.97.1:4500",
+        "188.114.98.1:4500",
+        "188.114.99.1:4500"
     )
     private var endpointIndex = 0
 
