@@ -10,6 +10,7 @@ import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.google.gson.GsonBuilder
+import com.google.gson.Strictness
 import javax.inject.Singleton
 
 @Module
@@ -33,7 +34,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        val gson = GsonBuilder().setLenient().create()
+        val gson = GsonBuilder().setStrictness(Strictness.LENIENT).create()
         return Retrofit.Builder()
             .baseUrl("https://api.cloudflareclient.com/")
             .client(okHttpClient)
@@ -51,7 +52,7 @@ object NetworkModule {
     @Singleton
     @javax.inject.Named("VpnRetrofit")
     fun provideVpnRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        val gson = GsonBuilder().setLenient().create()
+        val gson = GsonBuilder().setStrictness(Strictness.LENIENT).create()
         // Replace with your actual Worker URL when deployed
         val baseUrl = "https://vpn-api.daumo-ringtones.workers.dev/"
         

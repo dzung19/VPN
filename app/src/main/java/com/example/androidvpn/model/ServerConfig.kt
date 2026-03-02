@@ -3,6 +3,7 @@ package com.example.androidvpn.model
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
+
 @Parcelize
 data class ServerConfig(
     val name: String,

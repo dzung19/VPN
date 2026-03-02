@@ -24,10 +24,10 @@ class BillingManager @Inject constructor(
         private const val TAG = "BillingManager"
         const val PREMIUM_PRODUCT_ID = "premium_vpn_monthly"
         // Set to false for production!
-        const val TEST_MODE = true
+        const val TEST_MODE = false
     }
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private val _isPremium = MutableStateFlow(false)
     val isPremium: StateFlow<Boolean> = _isPremium.asStateFlow()
@@ -39,7 +39,7 @@ class BillingManager @Inject constructor(
 
     private val billingClient = BillingClient.newBuilder(context)
         .setListener(this)
-        .enablePendingPurchases()
+        .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
         .build()
 
     init {

@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.androidvpn.MainActivity
@@ -17,8 +18,8 @@ import com.wireguard.config.Config
 import com.wireguard.config.InetNetwork
 import com.wireguard.config.Interface
 import com.wireguard.config.Peer
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +37,9 @@ object TunnelManager {
 
     private val _tunnelState = MutableStateFlow(Tunnel.State.DOWN)
     val tunnelState: StateFlow<Tunnel.State> = _tunnelState.asStateFlow()
+
+    var tunnelStartTimeMillis: Long = 0
+        private set
 
     // Initialize the GoBackend (must be called with Context)
     fun init(context: Context) {
@@ -112,7 +116,7 @@ object TunnelManager {
         lastRxBytes = 0
         lastTxBytes = 0
 
-        speedMonitorJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+        speedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
             while (tunnelState.value == Tunnel.State.UP) {
                 try {
                     val stats = backend?.getStatistics(currentTunnel!!)
@@ -136,7 +140,6 @@ object TunnelManager {
                 } catch (e: Exception) {
                     // Ignore transient errors reading stats
                 }
-                delay(1000L)
             }
         }
     }
@@ -155,20 +158,13 @@ object TunnelManager {
             try {
                 val wgConfig = buildWireGuardConfig(config, excludedApps)
 
-                // Log the config for debugging (Redact private key)
-                Log.d(
-                    TAG,
-                    "Starting Tunnel with config: Interface=${wgConfig.`interface`}, Peers=${wgConfig.peers}"
-                )
-                Log.d(TAG, "Excluded apps: ${excludedApps.size}")
-
                 val newTunnel = InternalTunnel("wg0")
                 currentTunnel = newTunnel
 
                 // Use setState instead of apply (which conflicts with Kotlin's scope function)
                 backend?.setState(newTunnel, Tunnel.State.UP, wgConfig)
+                tunnelStartTimeMillis = SystemClock.elapsedRealtime()
                 _tunnelState.value = Tunnel.State.UP
-                Log.d(TAG, "Tunnel Started: ${config.name}")
 
                 // Show persistent notification
                 showVpnNotification(config.name)

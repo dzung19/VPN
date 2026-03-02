@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Settings
@@ -54,7 +55,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.wireguard.android.backend.Tunnel
 
 @Composable
@@ -216,6 +217,10 @@ fun HomeScreen(
 
                         AlwaysOnButton(modifier = Modifier.weight(1f), compact = true)
                     }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    AddWidgetButton(modifier = Modifier.fillMaxWidth())
                 }
             }
         } else {
@@ -285,6 +290,11 @@ fun HomeScreen(
 
                 // Always-on VPN button
                 AlwaysOnButton(modifier = Modifier.fillMaxWidth())
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Add Widget button
+                AddWidgetButton(modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -512,6 +522,45 @@ private fun AlwaysOnButton(modifier: Modifier = Modifier, compact: Boolean = fal
             if (!compact) {
                 Text(
                     "Auto-connect on boot",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddWidgetButton(modifier: Modifier = Modifier, compact: Boolean = false) {
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = {
+            val appWidgetManager = android.appwidget.AppWidgetManager.getInstance(context)
+            val myProvider = android.content.ComponentName(context, com.example.androidvpn.widget.VpnWidgetProvider::class.java)
+            if (appWidgetManager.isRequestPinAppWidgetSupported) {
+                val successIntent = Intent(context, com.example.androidvpn.MainActivity::class.java)
+                val successPendingIntent = android.app.PendingIntent.getActivity(context, 0, successIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
+                appWidgetManager.requestPinAppWidget(myProvider, null, successPendingIntent)
+            } else {
+                android.widget.Toast.makeText(context, "Widget", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        },
+        modifier = modifier,
+        shape = RoundedCornerShape(if (compact) 16.dp else 28.dp),
+        contentPadding = if (compact) PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+        else ButtonDefaults.ContentPadding
+    ) {
+        Icon(
+            Icons.Filled.Add,
+            "Add Widget",
+            modifier = Modifier.size(if (compact) 16.dp else 18.dp)
+        )
+        Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
+        Column {
+            Text("Add VPN Widget", fontSize = if (compact) 12.sp else 14.sp)
+            if (!compact) {
+                Text(
+                    "Pin quick connect to home screen",
                     fontSize = 10.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

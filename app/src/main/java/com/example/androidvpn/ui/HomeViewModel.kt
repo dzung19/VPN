@@ -12,6 +12,7 @@ import com.example.androidvpn.data.SplitTunnelRepository
 import com.example.androidvpn.data.TunnelManager
 import com.example.androidvpn.model.ServerConfig
 import com.example.androidvpn.model.ServerItemDto
+import com.example.androidvpn.widget.updateWidget
 import com.wireguard.android.backend.Tunnel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -288,6 +289,7 @@ class HomeViewModel @Inject constructor(
                 Log.d("HomeViewModel", "toggleVpn: excluded apps = ${excluded.size}")
                 TunnelManager.startTunnel(config, excluded)
             }
+            context.updateWidget()
         }
     }
     

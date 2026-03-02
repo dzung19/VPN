@@ -55,7 +55,20 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="DISCONNECT_VPN" />
+                <action android:name="TOGGLE_VPN" />
             </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".widget.VpnWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.example.androidvpn.ACTION_WIDGET_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vpn_widget_info" />
         </receiver>
 
     </application>
