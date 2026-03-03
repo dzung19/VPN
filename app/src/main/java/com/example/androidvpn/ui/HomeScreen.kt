@@ -62,7 +62,8 @@ import com.wireguard.android.backend.Tunnel
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNavigateToServerList: () -> Unit,
-    onNavigateToSplitTunnel: () -> Unit = {}
+    onNavigateToSplitTunnel: () -> Unit = {},
+    onNavigateToWallet: () -> Unit = {}
 ) {
     val vpnState by viewModel.vpnState.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
@@ -215,6 +216,19 @@ fun HomeScreen(
                             Text("Split Tunnel", fontSize = 12.sp)
                         }
 
+                        OutlinedButton(
+                            onClick = onNavigateToWallet,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text("🛡️ Wallet & Passes", fontSize = 12.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         AlwaysOnButton(modifier = Modifier.weight(1f), compact = true)
                     }
 
@@ -284,6 +298,17 @@ fun HomeScreen(
                     Icon(Icons.Filled.Settings, "Settings", modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("Split Tunneling")
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Wallet Button
+                OutlinedButton(
+                    onClick = onNavigateToWallet,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Text("🛡️ Wallet & Passes")
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))

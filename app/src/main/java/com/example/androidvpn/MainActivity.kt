@@ -17,6 +17,7 @@ import com.example.androidvpn.ui.AddServerScreen
 import com.example.androidvpn.ui.HomeScreen
 import com.example.androidvpn.ui.ServerListScreen
 import com.example.androidvpn.ui.SplitTunnelScreen
+import com.example.androidvpn.ui.WalletScreen
 import com.example.androidvpn.ui.TermsOfServiceScreen
 
 import dagger.hilt.android.AndroidEntryPoint
@@ -58,7 +59,8 @@ class MainActivity : ComponentActivity() {
                             HomeScreen(
                                 viewModel = sharedViewModel,
                                 onNavigateToServerList = { navController.navigate("server_list") },
-                                onNavigateToSplitTunnel = { navController.navigate("split_tunnel") }
+                                onNavigateToSplitTunnel = { navController.navigate("split_tunnel") },
+                                onNavigateToWallet = { navController.navigate("wallet") }
                             )
                         }
                         composable("server_list") {
@@ -85,6 +87,11 @@ class MainActivity : ComponentActivity() {
                             val sharedViewModel: com.example.androidvpn.ui.HomeViewModel = hiltViewModel(parentEntry)
                             SplitTunnelScreen(
                                 repository = sharedViewModel.splitTunnelRepository,
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("wallet") {
+                            WalletScreen(
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
