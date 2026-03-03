@@ -282,6 +282,7 @@ class HomeViewModel @Inject constructor(
                 if (config.name == "Cloudflare WARP") {
                     Log.d("HomeViewModel", "WARP detected, re-registering fresh keys...")
                     createCloudflareConfig()
+                    context.updateWidget()
                     return@launch
                 }
 
