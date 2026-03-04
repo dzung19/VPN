@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.serialization)
@@ -5,18 +7,24 @@ plugins {
     id("kotlin-parcelize")
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.google.services)
 }
 
 android {
-    namespace = "com.example.androidvpn"
+    namespace = "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn"
     compileSdk = 36
 
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(localPropertiesFile.inputStream())
+    }
     defaultConfig {
-        applicationId = "com.example.androidvpn"
+        applicationId = "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn"
         minSdk = 28 // WireGuard requires minSdk 21+, but 26 is safer for modern features
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,8 +33,22 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "APP_OPEN_AD_ID", "\"ca-app-pub-3940256099942544/9257395921\"")
+            buildConfigField("String", "BANNER_AD_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
+            buildConfigField("String", "INTERSTITIAL_AD_ID", "\"ca-app-pub-3940256099942544/1033173712\"")
+            buildConfigField("String", "REMOVE_ADS_SKU", "\"android.test.purchased\"")
+            buildConfigField("Boolean", "ADS_DISABLED", "false")
+            manifestPlaceholders["caAppPubId"] = "ca-app-pub-3940256099942544~3347511713"
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "APP_OPEN_AD_ID", "\"${localProperties.getProperty("APP_OPEN_AD_ID")}\"")
+            buildConfigField("String", "BANNER_AD_ID", "\"${localProperties.getProperty("BANNER_AD_ID")}\"")
+            buildConfigField("String", "INTERSTITIAL_AD_ID", "\"${localProperties.getProperty("INTERSTITIAL_AD_ID")}\"")
+            buildConfigField("String", "REMOVE_ADS_SKU", "\"test\"")
+            buildConfigField("Boolean", "ADS_DISABLED", "false")
+            manifestPlaceholders["caAppPubId"] = "ca-app-pub-9439921169677011~9566091994"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -36,6 +58,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     // composeOptions removed as it's not needed for Kotlin 2.0+ with the new plugin
     packaging {
@@ -78,6 +101,7 @@ dependencies {
 
     // Google Play Billing
     implementation(libs.billing.ktx)
+    implementation(libs.androidx.lifecycle.process)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -91,4 +115,8 @@ dependencies {
     implementation(libs.hilt.android.v2481)
     ksp(libs.hilt.android.compiler.v2481)
     implementation(libs.androidx.hilt.navigation.compose.v120)
+
+    // Ads
+    implementation(project(":ads"))
+    implementation(libs.googleAds)
 }

@@ -4,4 +4,6 @@ plugins {
     alias(libs.plugins.jetbrains.kotlin.compose.compiler) apply false
     alias(libs.plugins.kotlin.ksp) apply false
     alias(libs.plugins.hilt) apply false
+    alias(libs.plugins.jetbrains.kotlin.jvm) apply false
+    alias(libs.plugins.google.services) apply false
 }

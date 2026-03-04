@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "411266350098",
+    "project_id": "phone-ringtones-2026",
+    "storage_bucket": "phone-ringtones-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:411266350098:android:161e554856cb57546e2ccb",
+        "android_client_info": {
+          "package_name": "com.daumo.bamboo3x.ringtones"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjNyAheo0Yg0V0UpyQ5HxI7OaKhDdobd8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:411266350098:android:96ce6d495a73ef6a6e2ccb",
+        "android_client_info": {
+          "package_name": "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjNyAheo0Yg0V0UpyQ5HxI7OaKhDdobd8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

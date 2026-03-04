@@ -19,6 +19,10 @@ tunnel = "1.0.20260102"
 ksp = "2.3.4"
 agp = "9.0.0"
 kotlin = "2.3.10"
+jetbrainsKotlinJvm = "2.3.10"
+googleServices = "4.4.2"
+googleAds = "24.7.0"
+lifecycleProcess = "2.10.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -47,11 +51,14 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 tunnel = { module = "com.wireguard.android:tunnel", version.ref = "tunnel" }
+googleAds = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "googleAds" }
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 jetbrains-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 jetbrains-kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 

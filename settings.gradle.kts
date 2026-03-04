@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "AndroidVPN"
 include(":app")
+include(":ads")
