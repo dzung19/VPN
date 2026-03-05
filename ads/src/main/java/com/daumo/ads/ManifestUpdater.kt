@@ -2,9 +2,7 @@ package com.daumo.ads
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Bundle
 import android.util.Log
-import java.io.IOException
 
 class ManifestUpdater private constructor(
     private val context: Context

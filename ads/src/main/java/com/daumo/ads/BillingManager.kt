@@ -62,7 +62,6 @@ class BillingManager(
 
         billingClient = BillingClient.newBuilder(context)
             .setListener(purchasesUpdatedListener)
-            .enableAutoServiceReconnection()
             .enablePendingPurchases(pendingPurchasesParams)
             .build()
 
@@ -101,8 +100,8 @@ class BillingManager(
             .build()
 
         billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.productDetailsList.isNotEmpty()) {
-                removeAdsProductDetails = productDetailsList.productDetailsList.find { it.productId == PRODUCT_ID_REMOVE_ADS }
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
+                removeAdsProductDetails = productDetailsList.find { it.productId == PRODUCT_ID_REMOVE_ADS }
                 if (removeAdsProductDetails == null) {
                     e(TAG, "Product $PRODUCT_ID_REMOVE_ADS not found in Play Console or not configured correctly.")
                 } else {

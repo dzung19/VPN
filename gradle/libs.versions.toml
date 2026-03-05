@@ -23,6 +23,9 @@ jetbrainsKotlinJvm = "2.3.10"
 googleServices = "4.4.2"
 googleAds = "24.7.0"
 lifecycleProcess = "2.10.0"
+firebaseConfigKtx = "23.0.1"
+appcompat = "1.7.1"
+material = "1.13.0"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -53,6 +56,9 @@ retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit
 tunnel = { module = "com.wireguard.android:tunnel", version.ref = "tunnel" }
 googleAds = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "googleAds" }
 androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "lifecycleProcess" }
+firebase-config-ktx = { group = "com.google.firebase", name = "firebase-config-ktx", version.ref = "firebaseConfigKtx" }
+androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
@@ -61,4 +67,5 @@ jetbrains-kotlin-compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose"
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hiltAndroid" }
 jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+android-library = { id = "com.android.library", version.ref = "agp" }
 

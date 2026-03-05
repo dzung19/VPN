@@ -1,6 +1,7 @@
 package com.daumo.ads
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +66,7 @@ class DynamicAdsManager private constructor(
             } catch (e2: Exception) {
                 // If still not found, we can also check if the app is debuggable
                 try {
-                    val isDebuggable = application.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0
+                    val isDebuggable = application.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
                     isDebuggable
                 } catch (e3: Exception) {
                     // If all else fails, assume release mode
