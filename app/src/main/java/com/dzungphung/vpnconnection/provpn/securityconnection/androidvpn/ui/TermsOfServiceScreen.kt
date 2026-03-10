@@ -46,9 +46,9 @@ fun TermsOfServiceScreen(
     val context = LocalContext.current
     val scrollState = rememberScrollState()
 
-    // Example URLs - Replace with your actual hosted documents later
-    val tosUrl = "https://example.com/tos"
-    val privacyUrl = "https://example.com/privacy"
+    // Hosted documents
+    val tosUrl = "https://sites.google.com/view/dzungvpn/home"
+    val privacyUrl = "https://sites.google.com/view/dzungvpn/home"
 
     Column(
         modifier = Modifier

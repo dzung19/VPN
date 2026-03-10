@@ -83,12 +83,8 @@ class HomeViewModel @Inject constructor(
             _currentConfig.value = repository.getCurrentConfig()
             
             // Fetch server list from API
-            if (_serverList.value.isEmpty())
+            if (_serverList.value.isEmpty()) {
                 _serverList.value = repository.fetchServers()
-
-            // Free tier: auto-create WARP config if no config exists
-            if (_currentConfig.value == null) {
-                createCloudflareConfig()
             }
         }
     }
