@@ -72,7 +72,7 @@ class MainActivity : ComponentActivity() {
                             ServerListScreen(
                                 viewModel = sharedViewModel,
                                 onNavigateBack = { navController.popBackStack() },
-                                onNavigateToAdd = { navController.navigate("add_server") }
+                                onNavigateToWallet = { navController.navigate("wallet") }
                             )
                         }
                         composable("add_server") {
@@ -81,12 +81,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("split_tunnel") {
-                            val parentEntry = remember(it) {
-                                navController.getBackStackEntry("home")
-                            }
-                            val sharedViewModel: HomeViewModel = hiltViewModel(parentEntry)
                             SplitTunnelScreen(
-                                repository = sharedViewModel.splitTunnelRepository,
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }

@@ -13,42 +13,6 @@ import javax.inject.Inject
 class CloudflareService @Inject constructor(
     private val api: CloudflareApi
 ) {
-    // Cloudflare WARP endpoints - official gateway IPs across multiple ranges
-    // Ports: 2408 (WARP default), 500/4500 (IPSec standard, rarely blocked)
-    // IP ranges: 162.159.192-193.x (primary), 188.114.96-99.x (secondary)
-    // IPv6 ranges (2606:4700:d0-d1::/48) skipped ΓÇö unreliable on many mobile networks
-    private val warpEndpoints = listOf(
-        // Primary range (162.159.x)
-        "162.159.193.1:2408",
-        "162.159.192.1:2408",
-        "162.159.193.1:500",
-        "162.159.192.1:500",
-        "162.159.193.1:4500",
-        "162.159.192.1:4500",
-        // Secondary range (188.114.x) ΓÇö 4 subnets
-        "188.114.96.1:2408",
-        "188.114.97.1:2408",
-        "188.114.98.1:2408",
-        "188.114.99.1:2408",
-        "188.114.96.1:500",
-        "188.114.97.1:500",
-        "188.114.98.1:500",
-        "188.114.99.1:500",
-        "188.114.96.1:4500",
-        "188.114.97.1:4500",
-        "188.114.98.1:4500",
-        "188.114.99.1:4500"
-    )
-    private var endpointIndex = 0
-
-    fun getNextEndpoint(): String {
-        val endpoint = warpEndpoints[endpointIndex % warpEndpoints.size]
-        endpointIndex++
-        return endpoint
-    }
-
-    fun getEndpointCount() = warpEndpoints.size
-
     suspend fun registerAndGetConfig(
         privateKey: String,
         publicKey: String,
@@ -64,18 +28,14 @@ class CloudflareService @Inject constructor(
                 fcm_token = "${installId}:FCM",
                 tos = timestamp,
                 type = "Android",
-                locale = "en_US"
+                locale = Locale.getDefault().toString()
             )
             
-            Log.d(TAG, "Registering WARP with publicKey: ${publicKey.take(20)}...")
             val response = api.register(request)
-            Log.d(TAG, "Registration response ID: ${response.id}")
-            Log.d(TAG, "Account type: ${response.account.account_type}")
 
             val addressV4 = response.config.interfaceField.addresses.v4
             val addressV6 = response.config.interfaceField.addresses.v6
-            Log.d(TAG, "Addresses: v4=$addressV4, v6=$addressV6")
-            
+
             var addresses = "$addressV4/32"
             if (addressV6.isNotEmpty()) {
                 addresses += ", $addressV6/128"
@@ -86,23 +46,41 @@ class CloudflareService @Inject constructor(
                 Log.e(TAG, "No peers returned from WARP API!")
                 return null
             }
-            Log.d(TAG, "Peer publicKey: ${peer.public_key.take(20)}...")
+            // Extract assigned endpoint from Cloudflare's own API response!
+            // If the API forgets to specify an exact IP, we'll fall back securely to the official Anycast DNS.
 
-            // Use forced endpoint or rotate through available endpoints
-            val resolvedEndpoint = forcedEndpoint ?: getNextEndpoint()
-            Log.d(TAG, "Using endpoint: $resolvedEndpoint")
+            // Note: peer.endpoint properties are defined in CloudflareApi.kt (Endpoint data class)
+            var assignedEndpointStr = peer.endpoint?.v4 ?: peer.endpoint?.v6 ?: peer.endpoint?.host ?: STANDARD_FALLBACK
+
+            // Cloudflare API sometimes returns the endpoint IP with a dummy port 0 (e.g. "162.159.192.7:0")
+            if (assignedEndpointStr.endsWith(":0")) {
+                assignedEndpointStr = assignedEndpointStr.substringBeforeLast(":0")
+            }
+
+            // Ensure there is a port specified correctly (WARP uses 2408)
+            val finalEndpointStr = if (assignedEndpointStr.contains("]:") || (assignedEndpointStr.contains(":") && assignedEndpointStr.count { it == ':' } == 1)) {
+                // Already has a port (either [ipv6]:port or ipv4:port)
+                assignedEndpointStr
+            } else if (assignedEndpointStr.contains(":") && !assignedEndpointStr.contains("[")) {
+                // Raw IPv6 address without port or brackets
+                "[$assignedEndpointStr]:2408"
+            } else {
+                // Raw IPv4 or hostname without port
+                "$assignedEndpointStr:2408"
+            }
+
+            val resolvedEndpoint = forcedEndpoint ?: finalEndpointStr
 
             val config = ServerConfig(
                 name = "Cloudflare WARP",
                 privateKey = privateKey,
                 address = addresses,
-                dns = "1.1.1.1, 1.0.0.1",
+                dns = "1.1.1.1, 1.0.0.1, 2606:4700:4700:1111, 2606:4700:4700:1001",
                 publicKey = peer.public_key,
                 endpoint = resolvedEndpoint,
                 allowedIps = "0.0.0.0/0, ::/0",
                 mtu = 1280
             )
-            Log.d(TAG, "WARP config created: endpoint=$resolvedEndpoint")
             config
         } catch (e: Exception) {
             Log.e(TAG, "WARP registration FAILED: ${e.message}", e)
@@ -118,5 +96,6 @@ class CloudflareService @Inject constructor(
 
     companion object {
         const val TAG = "CloudflareService"
+        const val STANDARD_FALLBACK = "engage.cloudflareclient.com:2408"
     }
 }

@@ -11,6 +11,7 @@ import androidx.core.app.NotificationCompat
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.MainActivity
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.ServerConfig
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.WalletManager
 import com.wireguard.android.backend.Backend
 import com.wireguard.android.backend.BackendException
 import com.wireguard.android.backend.GoBackend
@@ -129,10 +130,12 @@ object TunnelManager {
         manager?.cancel(NOTIFICATION_ID)
     }
 
-    private fun startSpeedMonitor(serverName: String) {
+    private fun startSpeedMonitor(serverName: String, isPremiumServer: Boolean = false, hasPremiumAccess: Boolean = false) {
         speedMonitorJob?.cancel()
         lastRxBytes = 0
         lastTxBytes = 0
+
+        val walletManager = appContext?.let { WalletManager(it) }
 
         speedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
             while (tunnelState.value == Tunnel.State.UP) {
@@ -146,6 +149,26 @@ object TunnelManager {
                             val rxDelta = totalRx - lastRxBytes
                             val txDelta = totalTx - lastTxBytes
 
+                            val totalDelta = rxDelta + txDelta
+                            if (totalDelta > 0 && isPremiumServer) {
+                                // Manage data passes! If not premium (no sub, no trial), check wallet
+                                if (!hasPremiumAccess && walletManager != null) {
+                                    val timeActiveUntil = walletManager.timePassActiveUntilMs.value
+                                    val isTimePassActive = timeActiveUntil != null && timeActiveUntil > System.currentTimeMillis()
+                                    
+                                    if (!isTimePassActive) {
+                                        // Consume data bytes if NO time pass
+                                        val hasDataLeft = walletManager.consumeDataBytes(totalDelta)
+                                        if (!hasDataLeft) {
+                                            // Run out of data! Disconnect!
+                                            Log.w(TAG, "Data limit reached! Disconnecting VPN.")
+                                            stopTunnel()
+                                            break
+                                        }
+                                    }
+                                }
+                            }
+
                             val rxSpeed = formatBytes(rxDelta) + "/s"
                             val txSpeed = formatBytes(txDelta) + "/s"
 
@@ -158,6 +181,7 @@ object TunnelManager {
                 } catch (e: Exception) {
                     // Ignore transient errors reading stats
                 }
+                kotlinx.coroutines.delay(1000)
             }
         }
     }
@@ -171,7 +195,7 @@ object TunnelManager {
         return String.format("%.1f GB", mb / 1024.0)
     }
 
-    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet()) =
+    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet(), hasPremiumAccess: Boolean = false) =
         withContext(Dispatchers.IO) {
             try {
                 val wgConfig = buildWireGuardConfig(config, excludedApps)
@@ -186,7 +210,7 @@ object TunnelManager {
 
                 // Show persistent notification
                 showVpnNotification(config.name)
-                startSpeedMonitor(config.name)
+                startSpeedMonitor(config.name, config.isPremium, hasPremiumAccess)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start tunnel: ${e.message}", e)
                 _tunnelState.value = Tunnel.State.DOWN

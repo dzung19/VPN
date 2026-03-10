@@ -1,11 +1,13 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
@@ -16,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.components.BannerAd
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.ServerItemDto
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,18 +26,19 @@ import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.S
 fun ServerListScreen(
     viewModel: HomeViewModel,
     onNavigateBack: () -> Unit,
-    onNavigateToAdd: () -> Unit
+    onNavigateToWallet: () -> Unit
 ) {
     val serverList by viewModel.serverList.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
-    val isPremium by viewModel.isPremium.collectAsState()
+    val hasPremiumAccess by viewModel.hasPremiumAccess.collectAsState()
 
     var showPaywall by remember { mutableStateOf(false) }
-
+    Log.d("HomeScreen", "$hasPremiumAccess Server")
     // Paywall dialog
     if (showPaywall) {
         PaywallDialog(
             billingManager = viewModel.billingManager,
+            onNavigateToWallet = onNavigateToWallet,
             onDismiss = { showPaywall = false }
         )
     }
@@ -45,10 +49,12 @@ fun ServerListScreen(
                 title = { Text("Select Location") },
                 navigationIcon = {
                     // Back button could go here
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 }
             )
         }
-        // fab removed as we use pre-defined list now
     ) { padding ->
         if (serverList.isEmpty()) {
             Box(
@@ -125,7 +131,7 @@ fun ServerListScreen(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (!isPremium) {
+                        if (!hasPremiumAccess) {
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 text = "\uD83D\uDD12",
@@ -141,9 +147,9 @@ fun ServerListScreen(
                     ServerItemCard(
                         server = server,
                         isSelected = isSelected,
-                        isLocked = !isPremium,
+                        isLocked = !hasPremiumAccess,
                         onClick = {
-                            if (!isPremium) {
+                            if (!hasPremiumAccess) {
                                 showPaywall = true
                             } else {
                                 if (!isSelected) {
@@ -154,6 +160,9 @@ fun ServerListScreen(
                         }
                     )
                 }
+            }
+            if (!hasPremiumAccess) {
+                BannerAd(Modifier.fillMaxWidth().padding(padding).height(60.dp).navigationBarsPadding())
             }
         }
     }

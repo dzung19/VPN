@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,12 +39,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -68,6 +71,7 @@ import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.compone
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.ServerConfig
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.widget.VpnWidgetProvider
 import com.wireguard.android.backend.Tunnel
+import androidx.core.net.toUri
 
 @Composable
 fun HomeScreen(
@@ -81,6 +85,8 @@ fun HomeScreen(
     val duration by viewModel.connectionDuration.collectAsState()
     val isProvisioning by viewModel.isProvisioning.collectAsState()
     val latencyMs by viewModel.latencyMs.collectAsState()
+    val hasPremiumAccess by viewModel.hasPremiumAccess.collectAsState()
+    Log.d("HomeScreen", "$hasPremiumAccess")
 
     // Start/stop latency monitor based on VPN state
     LaunchedEffect(vpnState, currentConfig?.endpoint) {
@@ -176,6 +182,44 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Android VPN",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        // Rate App Icon
+                        val context = LocalContext.current
+                        IconButton(
+                            onClick = {
+                                val packageName = context.packageName
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW,
+                                        "market://details?id=$packageName".toUri()))
+                                } catch (e: android.content.ActivityNotFoundException) {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW,
+                                        "https://play.google.com/store/apps/details?id=$packageName".toUri()))
+                                }
+                            },
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = "Rate App",
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     StatusCircle(
                         isConnected = isConnected,
                         isProvisioning = isProvisioning,
@@ -188,11 +232,13 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     // BannerAd in landscape mode
-                    BannerAd(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
-                    )
+                    if (!hasPremiumAccess) {
+                        BannerAd(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(60.dp)
+                        )
+                    }
                 }
 
                 // Right: Controls (scrollable)
@@ -267,13 +313,40 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header
-                Text(
-                    text = "Android VPN",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(top = 24.dp)
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Android VPN",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+
+                    // Rate App Icon
+                    val context = LocalContext.current
+                    IconButton(
+                        onClick = {
+                            val packageName = context.packageName
+                            try {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$packageName")))
+                            } catch (e: android.content.ActivityNotFoundException) {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$packageName")))
+                            }
+                        },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .size(56.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
+                            contentDescription = "Rate App",
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -342,14 +415,16 @@ fun HomeScreen(
                 // Add Widget button
                 AddWidgetButton(modifier = Modifier.fillMaxWidth())
                 
-                Spacer(modifier = Modifier.height(16.dp))
-                
+                Spacer(modifier = Modifier.height(10.dp))
+
                 // BannerAd in portrait mode
-                BannerAd(
-                    Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                )
+                if (!hasPremiumAccess) {
+                    BannerAd(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(60.dp)
+                    )
+                }
             }
         }
     }
@@ -432,6 +507,7 @@ private fun ServerCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
             .clickable { if (!isProvisioning) onNavigateToServerList() },
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         shape = RoundedCornerShape(16.dp)
@@ -449,8 +525,9 @@ private fun ServerCard(
             if (currentConfig != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = currentConfig.endpoint,
-                        fontSize = 12.sp,
+                        text = currentConfig.name,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f)
                     )

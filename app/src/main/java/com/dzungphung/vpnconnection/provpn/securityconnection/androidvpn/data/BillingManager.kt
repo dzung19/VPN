@@ -32,8 +32,8 @@ class BillingManager @Inject constructor(
         private const val TAG = "BillingManager"
         const val PREMIUM_PRODUCT_ID = "premium_vpn_monthly"
         val PASS_PRODUCT_IDS = listOf(
-            "pass-time-12h", "pass-time-24h",
-            "pass-data-1gb", "pass-data-3gb", "pass-data-5gb", "pass-data-10gb"
+            "pass_time_12h", "pass_time_24h",
+            "pass_data_1gb", "pass_data_3gb", "pass_data_5gb", "pass_data_10gb"
         )
         // Set to false for production!
         const val TEST_MODE = false
@@ -244,6 +244,17 @@ class BillingManager @Inject constructor(
             BillingClient.BillingResponseCode.USER_CANCELED -> {
                 Log.d(TAG, "User canceled purchase")
             }
+            BillingClient.BillingResponseCode.ITEM_ALREADY_OWNED -> {
+                Log.d(TAG, "Item already owned, attempting to consume existing purchase")
+                // Handle the case where item is already owned
+                // This can happen if a previous purchase wasn't consumed properly
+                purchases?.firstOrNull()?.let { purchase ->
+                    scope.launch { consumePassPurchase(purchase) }
+                } ?: run {
+                    // If no purchase provided, query existing purchases and consume them
+                    scope.launch { queryAndConsumeExistingPasses() }
+                }
+            }
             else -> {
                 Log.e(TAG, "Purchase error: ${result.debugMessage}")
             }
@@ -268,13 +279,28 @@ class BillingManager @Inject constructor(
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 for (productId in purchase.products) {
                     when (productId) {
-                        "pass-time-12h" -> walletManager.addTimePass(12)
-                        "pass-time-24h" -> walletManager.addTimePass(24)
-                        "pass-data-1gb" -> walletManager.addDataBytes(1L * 1024 * 1024 * 1024)
-                        "pass-data-3gb" -> walletManager.addDataBytes(3L * 1024 * 1024 * 1024)
-                        "pass-data-5gb" -> walletManager.addDataBytes(5L * 1024 * 1024 * 1024)
-                        "pass-data-10gb" -> walletManager.addDataBytes(10L * 1024 * 1024 * 1024)
+                        "pass_time_12h" -> walletManager.addTimePass(12)
+                        "pass_time_24h" -> walletManager.addTimePass(24)
+                        "pass_data_1gb" -> walletManager.addDataBytes(1L * 1024 * 1024 * 1024)
+                        "pass_data_3gb" -> walletManager.addDataBytes(3L * 1024 * 1024 * 1024)
+                        "pass_data_5gb" -> walletManager.addDataBytes(5L * 1024 * 1024 * 1024)
+                        "pass_data_10gb" -> walletManager.addDataBytes(10L * 1024 * 1024 * 1024)
                     }
+                }
+            }
+        }
+    }
+
+    private suspend fun queryAndConsumeExistingPasses() {
+        // Query INAPP purchases to consume any pending passes that got stuck
+        val inappParams = QueryPurchasesParams.newBuilder()
+            .setProductType(BillingClient.ProductType.INAPP)
+            .build()
+        val inappResult = billingClient.queryPurchasesAsync(inappParams)
+        if (inappResult.billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+            inappResult.purchasesList.forEach { purchase ->
+                if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+                    consumePassPurchase(purchase)
                 }
             }
         }
@@ -288,7 +314,7 @@ class BillingManager @Inject constructor(
             ?.pricingPhaseList
             ?.lastOrNull() // Last phase = recurring price (not trial)
             ?.formattedPrice
-            ?: "$1.99/month"
+            ?: "$4.99/month"
     }
 
     fun refresh() {

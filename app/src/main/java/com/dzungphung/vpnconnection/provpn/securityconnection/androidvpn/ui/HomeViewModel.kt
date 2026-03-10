@@ -8,8 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.BillingManager
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.ServerRepository
-import com.example.androidvpn.data.SplitTunnelRepository
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.SplitTunnelRepository
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.TunnelManager
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.WalletManager
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.ServerConfig
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.ServerItemDto
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.widget.updateWidget
@@ -22,7 +23,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
@@ -34,13 +38,19 @@ class HomeViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val repository: ServerRepository,
     val billingManager: BillingManager,
+    walletManager: WalletManager,
     val splitTunnelRepository: SplitTunnelRepository,
 ) : ViewModel() {
 
-    // Billing state
-    val isPremium = billingManager.isPremium
+    // Unified Premium State (Subscription OR Active Wallet Passes)
+    val hasPremiumAccess: StateFlow<Boolean> = combine(
+        billingManager.isPremium,
+        walletManager.timePassActiveUntilMs,
+        walletManager.remainingDataBytes
+    ) { isSub, timePass, data ->
+        isSub || (timePass != null && timePass > System.currentTimeMillis()) || (data > 0L)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    
     // UI State
     val vpnState = TunnelManager.tunnelState
     
@@ -97,38 +107,34 @@ class HomeViewModel @Inject constructor(
             _isProvisioning.value = true
 
             // Try multiple endpoints until one actually passes traffic
-            val maxRetries = repository.cloudflareService.getEndpointCount()
             var connected = false
 
-            for (attempt in 1..maxRetries) {
+            for (attempt in 1..MAX_RETRY) {
                 val config = repository.createCloudflareConfig()
                 if (config == null) {
                     Log.e("HomeViewModel", "WARP config creation FAILED (null)")
                     continue
                 }
 
-                Log.d("HomeViewModel", "WARP attempt $attempt/$maxRetries: ${config.endpoint}")
                 selectConfig(config)
 
                 try {
-                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps())
+                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps(), hasPremiumAccess.value)
 
                     // Wait a moment for tunnel interface to come up
-                    delay(2000)
+                    delay(3000)
 
                     // Verify ACTUAL connectivity (not just tunnel state)
                     // WireGuard reports UP before handshake completes!
                     val reachable = withContext(Dispatchers.IO) {
                         try {
                             val socket = Socket()
-                            socket.connect(InetSocketAddress("1.1.1.1", 53), 6000)
+                            // Try DNS resolution first as it uses UDP and checks true internet access
+                            socket.connect(InetSocketAddress("1.1.1.1", 53), 8000)
                             socket.close()
                             true
-                        } catch (t: Throwable) {
-                            Log.d("HomeViewModel", "Connectivity check failed: ${t.javaClass.simpleName}")
-                            false
                         } catch (e: Exception) {
-                            Log.d("HomeViewModel", "Connectivity check failed: $e")
+                            Log.w("HomeViewModel", "Connectivity check failed: ${e.message}")
                             false
                         }
                     }
@@ -136,23 +142,26 @@ class HomeViewModel @Inject constructor(
                     if (reachable) {
                         Log.d("HomeViewModel", "WARP connected on attempt $attempt: ${config.endpoint}")
                         connected = true
+                        _currentConfig.value = config
                         break
                     }
 
-                    // Handshake failed, try next endpoint
-                    Log.w("HomeViewModel", "WARP no connectivity on ${config.endpoint}, trying next...")
+                    // Handshake failed, try next endpoint, and actively delete the stale config
+                    Log.w("HomeViewModel", "WARP no connectivity on ${config.endpoint}, deleting and retrying...")
                     TunnelManager.stopTunnel()
+                    repository.removeConfig(config)
                     delay(500)
 
                 } catch (e: Exception) {
                     Log.e("HomeViewModel", "WARP tunnel error: ${e.message}")
                     try { TunnelManager.stopTunnel() } catch (_: Throwable) {}
+                    repository.removeConfig(config)
                 }
             }
 
             if (!connected) {
-                Log.e("HomeViewModel", "WARP: All endpoints failed after $maxRetries attempts")
                 try { TunnelManager.stopTunnel() } catch (_: Throwable) {}
+                _currentConfig.value = null
             }
 
             _isProvisioning.value = false
@@ -231,7 +240,7 @@ class HomeViewModel @Inject constructor(
                     _currentConfig.value = config
                     // VM adds peer instantly via HTTP API, no delay needed
                     _isProvisioning.value = false
-                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps())
+                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps(), hasPremiumAccess.value)
                 } else {
                     _isProvisioning.value = false
                 }
@@ -291,9 +300,17 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
 
+                // Premium check
+                if (!hasPremiumAccess.value) {
+                    Log.d("HomeViewModel", "Premium required, but user lacks access. Falling back to WARP.")
+                    createCloudflareConfig()
+                    context.updateWidget()
+                    return@launch
+                }
+
                 val excluded = splitTunnelRepository.getExcludedApps()
                 Log.d("HomeViewModel", "toggleVpn: excluded apps = ${excluded.size}")
-                TunnelManager.startTunnel(config, excluded)
+                TunnelManager.startTunnel(config, excluded, hasPremiumAccess.value)
             }
             context.updateWidget()
         }
@@ -346,5 +363,9 @@ class HomeViewModel @Inject constructor(
 
     fun checkVpnPermission(): Intent? {
         return VpnService.prepare(context)
+    }
+
+    companion object {
+        private const val MAX_RETRY = 10
     }
 }

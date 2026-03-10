@@ -5,7 +5,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,6 +27,7 @@ import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.Bi
 @Composable
 fun PaywallDialog(
     billingManager: BillingManager,
+    onNavigateToWallet: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val price = billingManager.getFormattedPrice()
@@ -63,7 +71,7 @@ fun PaywallDialog(
                     "\uD83C\uDF0D Global server locations",
                     "\u26A1 Faster connection speeds",
                     "\uD83D\uDD12 Dedicated VPN servers",
-                    "\uD83C\uDF81 3-day free trial"
+                    "\uD83C\uDF81 7-day free trial"
                 ).forEach { benefit ->
                     Text(
                         text = benefit,
@@ -80,6 +88,16 @@ fun PaywallDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                        onNavigateToWallet()
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Buy Single Passes (No Sub)", fontWeight = FontWeight.Bold)
+                }
             }
         },
         confirmButton = {

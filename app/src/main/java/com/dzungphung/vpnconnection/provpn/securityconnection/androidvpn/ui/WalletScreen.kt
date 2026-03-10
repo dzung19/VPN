@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.components.BannerAd
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.StoreProduct
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +47,8 @@ fun WalletScreen(
     val dataBalance by viewModel.remainingDataBytes.collectAsState()
     val timePassActiveUntil by viewModel.timePassActiveUntilMs.collectAsState()
     val availableProducts by viewModel.availableProducts.collectAsState()
+    val hasPremiumAccess by viewModel.hasPremiumAccess.collectAsState()
+    val availableSubs by viewModel.availableSubs.collectAsState()
     val activity = LocalActivity.current
 
     Scaffold(
@@ -58,29 +63,43 @@ fun WalletScreen(
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            // Header: Current Balances
-            item {
-                BalanceCard(dataBalance, timePassActiveUntil)
-            }
+        Column {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
+            ) {
+                // Header: Current Balances
+                item {
+                    BalanceCard(dataBalance, timePassActiveUntil)
+                }
 
-            item {
-                Text("Available Passes", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 8.dp))
-            }
+                item {
+                    Text(
+                        "Available Passes",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                    )
+                }
 
-            items(items = availableProducts) { product ->
-                ProductCard(product) {
-                    if (activity != null) {
-                        viewModel.purchaseProduct(activity, product.id)
+                items(items = availableProducts) { product ->
+                    ProductCard(product) {
+                        if (activity != null) {
+                            viewModel.purchaseProduct(activity, product.id)
+                        }
                     }
                 }
+            }
+            if (!hasPremiumAccess) {
+                BannerAd(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                )
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui
 
-import android.graphics.drawable.Drawable
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -10,11 +9,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -32,37 +33,30 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
-import com.example.androidvpn.data.AppInfo
-import com.example.androidvpn.data.SplitTunnelRepository
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.components.BannerAd
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.AppInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SplitTunnelScreen(
-    repository: SplitTunnelRepository,
+    viewModel: SplitTunnelViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit
 ) {
-    var apps by remember { mutableStateOf<List<AppInfo>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
-    var searchQuery by remember { mutableStateOf("") }
-
-    // Load apps
-    LaunchedEffect(Unit) {
-        apps = repository.getInstalledApps()
-        isLoading = false
-    }
+    val apps by viewModel.apps.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val hasPremiumAccess by viewModel.hasPremiumAccess.collectAsState()
 
     val filteredApps = remember(apps, searchQuery) {
         if (searchQuery.isBlank()) apps
@@ -105,7 +99,7 @@ fun SplitTunnelScreen(
                         fontSize = 14.sp
                     )
                     Text(
-                        text = "$excludedCount app${if (excludedCount != 1) "s" else ""} excluded",
+                        text = "Excluded: $excludedCount apps",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                     )
@@ -115,7 +109,7 @@ fun SplitTunnelScreen(
             // Search bar
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = { viewModel.updateSearchQuery(it) },
                 placeholder = { Text("Search apps") },
                 leadingIcon = { Icon(Icons.Filled.Search, "Search") },
                 modifier = Modifier
@@ -136,21 +130,15 @@ fun SplitTunnelScreen(
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    items(filteredApps, key = { it.packageName }) { appInfo ->
+                    items(
+                        items = filteredApps,
+                        key = { it.packageName },
+                        contentType = { "AppItem" }
+                    ) { appInfo ->
                         AppItem(
                             appInfo = appInfo,
-                            onToggle = {
-                                Log.d("SplitTunnel", "=== TOGGLE CLICKED: ${appInfo.packageName} ===")
-                                repository.toggleApp(appInfo.packageName)
-                                // Verify the save worked by reading back
-                                val verify = repository.getExcludedApps()
-                                Log.d("SplitTunnel", "=== VERIFY after toggle: ${verify.size} -> $verify ===")
-                                // Update local state
-                                apps = apps.map { app ->
-                                    if (app.packageName == appInfo.packageName)
-                                        app.copy(isExcluded = !app.isExcluded)
-                                    else app
-                                }
+                            onToggle = { packageName ->
+                                viewModel.toggleApp(packageName)
                             }
                         )
                     }
@@ -163,16 +151,9 @@ fun SplitTunnelScreen(
 @Composable
 private fun AppItem(
     appInfo: AppInfo,
-    onToggle: () -> Unit
+    onToggle: (String) -> Unit
 ) {
-    val context = LocalContext.current
-    val appIcon: Drawable? = remember(appInfo.packageName) {
-        try {
-            context.packageManager.getApplicationIcon(appInfo.packageName)
-        } catch (e: Exception) {
-            null
-        }
-    }
+    val isChecked = remember(appInfo.isExcluded) { mutableStateOf(appInfo.isExcluded) }
 
     Row(
         modifier = Modifier
@@ -181,9 +162,9 @@ private fun AppItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // App icon
-        appIcon?.let { drawable ->
+        appInfo.icon?.let { bitmap ->
             Image(
-                bitmap = drawable.toBitmap(48, 48).asImageBitmap(),
+                bitmap = bitmap.asImageBitmap(),
                 contentDescription = appInfo.appName,
                 modifier = Modifier.size(40.dp)
             )
@@ -201,10 +182,12 @@ private fun AppItem(
             )
         }
 
-        // Toggle
         Switch(
-            checked = appInfo.isExcluded,
-            onCheckedChange = { onToggle() }
+            checked = isChecked.value,
+            onCheckedChange = { 
+                isChecked.value = it
+                onToggle(appInfo.packageName) 
+            }
         )
     }
 }
