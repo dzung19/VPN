@@ -34,6 +34,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Lock
@@ -63,6 +79,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -139,7 +156,10 @@ fun HomeScreen(
         else -> "CONNECT"
     }
 
+    val haptic = LocalHapticFeedback.current
+
     val onConnectClick: () -> Unit = {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         if (!isConnected) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -158,11 +178,17 @@ fun HomeScreen(
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    
+    val backgroundBrush = when {
+        isConnected -> Brush.verticalGradient(listOf(Color(0xFF021B1A), Color(0xFF004D40)))
+        isProvisioning -> Brush.verticalGradient(listOf(Color(0xFF1E1200), Color(0xFF4D2600)))
+        else -> Brush.verticalGradient(listOf(Color(0xFF0D0D12), Color(0xFF1A1A2E)))
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(backgroundBrush)
             .statusBarsPadding()
             .navigationBarsPadding()
     ) {
@@ -191,7 +217,7 @@ fun HomeScreen(
                             text = "WakeVPN",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = Color.White
                         )
 
                         // Rate App Icon
@@ -217,8 +243,6 @@ fun HomeScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
 
                     StatusCircle(
                         isConnected = isConnected,
@@ -272,23 +296,32 @@ fun HomeScreen(
                     // Settings buttons row
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
-                            onClick = onNavigateToSplitTunnel,
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToSplitTunnel()
+                            },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White.copy(alpha = 0.05f),
+                                contentColor = Color.White
+                            ),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                         ) {
-                            Icon(Icons.Filled.Settings, "Settings", modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Split Tunnel", fontSize = 12.sp)
-                        }
-
-                        OutlinedButton(
-                            onClick = onNavigateToWallet,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                        ) {
-                            Text("🛡️ Wallet & Passes", fontSize = 12.sp)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Filled.Settings, "Settings", modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Split Tunnel",
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
 
@@ -301,6 +334,9 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     AddWidgetButton(modifier = Modifier.fillMaxWidth())
+
+                    // Extra padding to scroll past the FAB
+                    Spacer(modifier = Modifier.height(100.dp))
                 }
             }
         } else {
@@ -320,7 +356,7 @@ fun HomeScreen(
                         text = "WakeVPN",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
+                        color = Color.White,
                         modifier = Modifier.align(Alignment.Center)
                     )
 
@@ -330,9 +366,12 @@ fun HomeScreen(
                         onClick = {
                             val packageName = context.packageName
                             try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=$packageName")))
+                                context.startActivity(Intent(Intent.ACTION_VIEW,
+                                    "market://details?id=$packageName".toUri()))
                             } catch (e: android.content.ActivityNotFoundException) {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=$packageName")))
+                                context.startActivity(Intent(
+                                    Intent.ACTION_VIEW,
+                                    "https://play.google.com/store/apps/details?id=$packageName".toUri()))
                             }
                         },
                         modifier = Modifier
@@ -347,8 +386,6 @@ fun HomeScreen(
                         )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
 
                 // Status Circle
                 StatusCircle(
@@ -385,23 +422,32 @@ fun HomeScreen(
                 // Split Tunnel button
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = onNavigateToSplitTunnel,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigateToSplitTunnel()
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White.copy(alpha = 0.05f),
+                            contentColor = Color.White
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        Icon(Icons.Filled.Settings, "Settings", modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Split Tunnel", fontSize = 12.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = onNavigateToWallet,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(16.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
-                    ) {
-                        Text("🛡️ Wallet & Passes", fontSize = 12.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Settings, "Settings", modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                "Split Tunnel",
+                                fontSize = 12.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
 
@@ -425,6 +471,29 @@ fun HomeScreen(
                             .height(60.dp)
                     )
                 }
+
+                // Extra padding to scroll past the FAB
+                Spacer(modifier = Modifier.height(100.dp))
+            }
+        }
+
+        // Floating Wallet Button
+        FloatingActionButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onNavigateToWallet()
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(top = 65.dp,bottom = 90.dp, end = 24.dp),
+            containerColor = Color(0xFF6200EA), // Vibrant purple
+            contentColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🛡️", fontSize = 18.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Passes", fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -440,21 +509,55 @@ private fun StatusCircle(
     duration: String,
     circleSize: Int
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "PulseTransition")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (isProvisioning || isConnected) 1.2f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseScale"
+    )
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = if (isProvisioning || isConnected) 0.05f else 0.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseAlpha"
+    )
+
     Box(
         modifier = Modifier
             .size(circleSize.dp)
-            .clip(CircleShape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        statusColor.copy(alpha = 0.1f),
-                        statusColor.copy(alpha = 0.05f)
-                    )
-                )
-            )
             .padding(20.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Pulsing background ring
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .scale(scale)
+                .clip(CircleShape)
+                .background(statusColor.copy(alpha = alpha))
+        )
+        // Static inner ring
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            statusColor.copy(alpha = 0.2f),
+                            statusColor.copy(alpha = 0.05f)
+                        )
+                    )
+                )
+        )
+
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (isProvisioning) {
                 CircularProgressIndicator(
@@ -463,20 +566,38 @@ private fun StatusCircle(
                     strokeWidth = 4.dp
                 )
             } else {
-                Icon(
-                    imageVector = if (isConnected) Icons.Filled.Lock else Icons.Filled.LockOpen,
-                    contentDescription = null,
-                    tint = statusColor,
-                    modifier = Modifier.size(if (circleSize > 200) 64.dp else 48.dp)
-                )
+                AnimatedContent(
+                    targetState = isConnected,
+                    transitionSpec = {
+                        (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                            slideOutVertically { height -> -height } + fadeOut())
+                    },
+                    label = "IconTransition"
+                ) { connected ->
+                    Icon(
+                        imageVector = if (connected) Icons.Filled.Lock else Icons.Filled.LockOpen,
+                        contentDescription = null,
+                        tint = statusColor,
+                        modifier = Modifier.size(if (circleSize > 200) 64.dp else 48.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(if (circleSize > 200) 16.dp else 8.dp))
-            Text(
-                text = statusText,
-                fontSize = if (circleSize > 200) 20.sp else 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = statusColor
-            )
+            AnimatedContent(
+                targetState = statusText,
+                transitionSpec = {
+                    (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                        slideOutVertically { height -> -height } + fadeOut())
+                },
+                label = "TextTransition"
+            ) { text ->
+                Text(
+                    text = text,
+                    fontSize = if (circleSize > 200) 20.sp else 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = statusColor
+                )
+            }
             if (isConnected) {
                 Text(
                     text = duration,
@@ -504,13 +625,20 @@ private fun ServerCard(
     isProvisioning: Boolean,
     onNavigateToServerList: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable { if (!isProvisioning) onNavigateToServerList() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        shape = RoundedCornerShape(16.dp)
+            .clickable { 
+                if (!isProvisioning) {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onNavigateToServerList() 
+                }
+            },
+        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
     ) {
         // Server Info
         Column(modifier = Modifier.padding(16.dp)) {
@@ -518,7 +646,7 @@ private fun ServerCard(
                 Text(
                     "Selected Server",
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = Color.White.copy(alpha = 0.7f),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -528,20 +656,20 @@ private fun ServerCard(
                         text = currentConfig.name,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = Color.White,
                         modifier = Modifier.weight(1f)
                     )
                     // Latency badge
                     val latencyText = when {
-                        latencyMs == null -> "\u23F3"
+                        latencyMs == null -> "⏳"
                         latencyMs < 0 -> "--"
                         else -> "${latencyMs}ms"
                     }
                     val latencyColor = when {
-                        latencyMs == null -> Color.Gray
-                        latencyMs < 0 -> Color.Gray
-                        latencyMs < 100 -> Color(0xFF00C853)
-                        latencyMs < 200 -> Color(0xFFFFA726)
+                        latencyMs == null -> Color.LightGray
+                        latencyMs < 0 -> Color.LightGray
+                        latencyMs < 100 -> Color(0xFF00E676)
+                        latencyMs < 200 -> Color(0xFFFFCA28)
                         else -> Color(0xFFFF5252)
                     }
                     Surface(
@@ -555,34 +683,6 @@ private fun ServerCard(
                             color = latencyColor,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
-                        // Latency badge
-                        val latencyText = when {
-                            latencyMs == null -> "⏳"
-                            latencyMs < 0 -> "--"
-                            else -> "${latencyMs}ms"
-                        }
-                        val latencyColor = when {
-                            latencyMs == null -> Color.Gray
-                            latencyMs < 0 -> Color.Gray
-                            latencyMs < 100 -> Color(0xFF00C853) // Green
-                            latencyMs < 200 -> Color(0xFFFFA726) // Orange
-                            else -> Color(0xFFFF5252) // Red
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = latencyColor.copy(alpha = 0.15f)
-                        ) {
-                            Text(
-                                text = latencyText,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = latencyColor,
-                                modifier = Modifier.padding(
-                                    horizontal = 8.dp,
-                                    vertical = 4.dp
-                                )
-                            )
-                        }
                     }
                 }
             } else {
@@ -591,7 +691,7 @@ private fun ServerCard(
                         text = "Tap to select a server",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color(0xFF6200EA),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -640,8 +740,10 @@ private fun ConnectButton(
 @Composable
 private fun AlwaysOnButton(modifier: Modifier = Modifier, compact: Boolean = false) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     OutlinedButton(
         onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             try {
                 context.startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
             } catch (_: Exception) {
@@ -650,23 +752,40 @@ private fun AlwaysOnButton(modifier: Modifier = Modifier, compact: Boolean = fal
         },
         modifier = modifier,
         shape = RoundedCornerShape(if (compact) 16.dp else 28.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.White.copy(alpha = 0.05f),
+            contentColor = Color.White
+        ),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
         contentPadding = if (compact) PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         else ButtonDefaults.ContentPadding
     ) {
-        Icon(
-            Icons.Filled.Lock,
-            "Always-on",
-            modifier = Modifier.size(if (compact) 16.dp else 18.dp)
-        )
-        Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
-        Column {
-            Text("Always-on VPN", fontSize = if (compact) 12.sp else 14.sp)
-            if (!compact) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.Lock,
+                "Always-on",
+                modifier = Modifier.size(if (compact) 16.dp else 18.dp)
+            )
+            Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Auto-connect on boot",
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Always-on VPN",
+                    fontSize = if (compact) 12.sp else 14.sp,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
                 )
+                if (!compact) {
+                    Text(
+                        "Auto-connect on boot",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }
@@ -675,8 +794,10 @@ private fun AlwaysOnButton(modifier: Modifier = Modifier, compact: Boolean = fal
 @Composable
 private fun AddWidgetButton(modifier: Modifier = Modifier, compact: Boolean = false) {
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
     OutlinedButton(
         onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val myProvider = ComponentName(context, VpnWidgetProvider::class.java)
             if (appWidgetManager.isRequestPinAppWidgetSupported) {
@@ -694,23 +815,40 @@ private fun AddWidgetButton(modifier: Modifier = Modifier, compact: Boolean = fa
         },
         modifier = modifier,
         shape = RoundedCornerShape(if (compact) 16.dp else 28.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.White.copy(alpha = 0.05f),
+            contentColor = Color.White
+        ),
+        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
         contentPadding = if (compact) PaddingValues(horizontal = 12.dp, vertical = 8.dp)
         else ButtonDefaults.ContentPadding
     ) {
-        Icon(
-            Icons.Filled.Add,
-            "Add Widget",
-            modifier = Modifier.size(if (compact) 16.dp else 18.dp)
-        )
-        Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
-        Column {
-            Text("Add VPN Widget", fontSize = if (compact) 12.sp else 14.sp)
-            if (!compact) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Filled.Add,
+                "Add Widget",
+                modifier = Modifier.size(if (compact) 16.dp else 18.dp)
+            )
+            Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    "Pin quick connect to home screen",
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    "Add VPN Widget",
+                    fontSize = if (compact) 12.sp else 14.sp,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
                 )
+                if (!compact) {
+                    Text(
+                        "Pin quick connect to home screen",
+                        fontSize = 10.sp,
+                        color = Color.White.copy(alpha = 0.7f),
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
         }
     }

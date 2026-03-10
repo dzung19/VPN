@@ -35,8 +35,22 @@ class MainActivity : ComponentActivity() {
         val isTosAccepted = prefs.getBoolean("is_tos_accepted", false)
         val startDest = if (isTosAccepted) "home" else "tos"
         enableEdgeToEdge()
+        val DarkColors = androidx.compose.material3.darkColorScheme(
+            background = androidx.compose.ui.graphics.Color(0xFF0D0D12),
+            surface = androidx.compose.ui.graphics.Color(0xFF1A1A2E),
+            surfaceVariant = androidx.compose.ui.graphics.Color(0xFF252538),
+            onBackground = androidx.compose.ui.graphics.Color.White,
+            onSurface = androidx.compose.ui.graphics.Color.White,
+            onSurfaceVariant = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
+            primary = androidx.compose.ui.graphics.Color(0xFF6200EA),
+            primaryContainer = androidx.compose.ui.graphics.Color(0xFF3700B3),
+            onPrimary = androidx.compose.ui.graphics.Color.White,
+            secondary = androidx.compose.ui.graphics.Color(0xFF03DAC6),
+            onSecondary = androidx.compose.ui.graphics.Color.Black
+        )
+
         setContent {
-            MaterialTheme {
+            MaterialTheme(colorScheme = DarkColors) {
                 val navController = rememberNavController()
                 
                 Surface(
@@ -99,6 +113,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars =
-            true
+            false
     }
 }
