@@ -5,6 +5,7 @@ import android.util.Log
 import android.widget.FrameLayout
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -145,8 +146,9 @@ fun BannerAd(modifier: Modifier = Modifier) {
     
     // Create the banner ad container
     Row(
-        modifier = modifier
-            .padding(bottom = 10.dp), // 10dp padding from bottom to avoid user click confusion
+        modifier = Modifier
+            .padding(bottom = 10.dp)
+            .navigationBarsPadding().then(modifier), // 10dp padding from bottom to avoid user click confusion
     ) {
         AndroidView(
             factory = { adContainer },

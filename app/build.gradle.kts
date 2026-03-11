@@ -23,8 +23,8 @@ android {
         applicationId = "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn"
         minSdk = 28 // WireGuard requires minSdk 21+, but 26 is safer for modern features
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.4"
+        versionCode = 4
+        versionName = "1.0.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -42,7 +42,7 @@ android {
             manifestPlaceholders["caAppPubId"] = "ca-app-pub-3940256099942544~3347511713"
         }
         release {
-            isMinifyEnabled = true
+            isMinifyEnabled = false
             buildConfigField("String", "APP_OPEN_AD_ID", "\"${localProperties.getProperty("APP_OPEN_AD_ID")}\"")
             buildConfigField("String", "BANNER_AD_ID", "\"${localProperties.getProperty("BANNER_AD_ID")}\"")
             buildConfigField("String", "INTERSTITIAL_AD_ID", "\"${localProperties.getProperty("INTERSTITIAL_AD_ID")}\"")
@@ -114,6 +114,8 @@ dependencies {
     implementation(libs.hilt.android.v2481)
     ksp(libs.hilt.android.compiler.v2481)
     implementation(libs.androidx.hilt.navigation.compose.v120)
+
+    implementation(libs.accompanist.permissions)
 
     // Ads
     implementation(project(":ads"))

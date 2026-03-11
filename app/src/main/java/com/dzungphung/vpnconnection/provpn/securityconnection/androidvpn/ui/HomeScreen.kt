@@ -89,7 +89,10 @@ import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.S
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.widget.VpnWidgetProvider
 import com.wireguard.android.backend.Tunnel
 import androidx.core.net.toUri
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
@@ -114,6 +117,11 @@ fun HomeScreen(
         }
     }
 
+    val requiredPermissions = mutableListOf<String>()
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        requiredPermissions.add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
     // VPN Permission Launcher
     val vpnPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult(),
@@ -124,18 +132,10 @@ fun HomeScreen(
         }
     )
 
-    // Notification Permission Launcher (Android 13+)
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { _ ->
-            val intent = viewModel.checkVpnPermission()
-            if (intent != null) {
-                vpnPermissionLauncher.launch(intent)
-            } else {
-                viewModel.toggleVpn()
-            }
-        }
-    )
+    val permissionState = rememberMultiplePermissionsState(permissions = requiredPermissions)
+    LaunchedEffect(permissionState.allPermissionsGranted) {
+        permissionState.launchMultiplePermissionRequest()
+    }
 
     val isConnected = vpnState == Tunnel.State.UP
 
@@ -161,15 +161,11 @@ fun HomeScreen(
     val onConnectClick: () -> Unit = {
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
         if (!isConnected) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            val intent = viewModel.checkVpnPermission()
+            if (intent != null) {
+                vpnPermissionLauncher.launch(intent)
             } else {
-                val intent = viewModel.checkVpnPermission()
-                if (intent != null) {
-                    vpnPermissionLauncher.launch(intent)
-                } else {
-                    viewModel.toggleVpn()
-                }
+                viewModel.toggleVpn()
             }
         } else {
             viewModel.toggleVpn()
@@ -209,7 +205,9 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -226,14 +224,22 @@ fun HomeScreen(
                             onClick = {
                                 val packageName = context.packageName
                                 try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW,
-                                        "market://details?id=$packageName".toUri()))
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            "market://details?id=$packageName".toUri()
+                                        )
+                                    )
                                 } catch (e: android.content.ActivityNotFoundException) {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW,
-                                        "https://play.google.com/store/apps/details?id=$packageName".toUri()))
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            "https://play.google.com/store/apps/details?id=$packageName".toUri()
+                                        )
+                                    )
                                 }
                             },
-                            modifier = Modifier.size(56.dp)
+                            modifier = Modifier
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Star,
@@ -250,11 +256,11 @@ fun HomeScreen(
                         statusColor = statusColor,
                         statusText = statusText,
                         duration = duration,
-                        circleSize = 180
+                        circleSize = 200
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     // BannerAd in landscape mode
                     if (!hasPremiumAccess) {
                         BannerAd(
@@ -314,7 +320,11 @@ fun HomeScreen(
                                 horizontalArrangement = Arrangement.Center,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Filled.Settings, "Settings", modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Filled.Settings,
+                                    "Settings",
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(Modifier.width(8.dp))
                                 Text(
                                     "Split Tunnel",
@@ -322,6 +332,23 @@ fun HomeScreen(
                                     textAlign = TextAlign.Center
                                 )
                             }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onNavigateToWallet()
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = Color.White.copy(alpha = 0.05f),
+                                contentColor = Color.White
+                            ),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                        ) {
+                            Text("🛡️ Wallet & Passes", fontSize = 12.sp)
                         }
                     }
 
@@ -334,9 +361,6 @@ fun HomeScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     AddWidgetButton(modifier = Modifier.fillMaxWidth())
-
-                    // Extra padding to scroll past the FAB
-                    Spacer(modifier = Modifier.height(100.dp))
                 }
             }
         } else {
@@ -366,17 +390,23 @@ fun HomeScreen(
                         onClick = {
                             val packageName = context.packageName
                             try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW,
-                                    "market://details?id=$packageName".toUri()))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        "market://details?id=$packageName".toUri()
+                                    )
+                                )
                             } catch (e: android.content.ActivityNotFoundException) {
-                                context.startActivity(Intent(
-                                    Intent.ACTION_VIEW,
-                                    "https://play.google.com/store/apps/details?id=$packageName".toUri()))
+                                context.startActivity(
+                                    Intent(
+                                        Intent.ACTION_VIEW,
+                                        "https://play.google.com/store/apps/details?id=$packageName".toUri()
+                                    )
+                                )
                             }
                         },
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .size(56.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Star,
@@ -449,6 +479,22 @@ fun HomeScreen(
                             )
                         }
                     }
+                    OutlinedButton(
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onNavigateToWallet()
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = Color.White.copy(alpha = 0.05f),
+                            contentColor = Color.White
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+                    ) {
+                        Text("🛡️ Wallet & Passes", fontSize = 12.sp)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -460,42 +506,40 @@ fun HomeScreen(
 
                 // Add Widget button
                 AddWidgetButton(modifier = Modifier.fillMaxWidth())
-                
+
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // BannerAd in portrait mode
-                if (!hasPremiumAccess) {
-                    BannerAd(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(60.dp)
-                    )
-                }
-
-                // Extra padding to scroll past the FAB
-                Spacer(modifier = Modifier.height(100.dp))
             }
         }
 
+        if (!hasPremiumAccess && !isLandscape) {
+            BannerAd(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(60.dp)
+            )
+        }
         // Floating Wallet Button
-        FloatingActionButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onNavigateToWallet()
-            },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(top = 65.dp,bottom = 90.dp, end = 24.dp),
-            containerColor = Color(0xFF6200EA), // Vibrant purple
-            contentColor = Color.White,
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("🛡️", fontSize = 18.sp)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Passes", fontWeight = FontWeight.Bold)
-            }
-        }
+//        FloatingActionButton(
+//            onClick = {
+//                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+//                onNavigateToWallet()
+//            },
+//            modifier = Modifier
+//                .align(Alignment.BottomEnd)
+//                .padding(bottom = 90.dp, end = 24.dp),
+//            containerColor = Color(0xFF6200EA), // Vibrant purple
+//            contentColor = Color.White,
+//            shape = RoundedCornerShape(16.dp)
+//        ) {
+//            Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+//                Text("🛡️", fontSize = 18.sp)
+//                Spacer(modifier = Modifier.width(8.dp))
+//                Text("Passes", fontWeight = FontWeight.Bold)
+//            }
+//        }
     }
 }
 
@@ -630,10 +674,10 @@ private fun ServerCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .clickable { 
+            .clickable {
                 if (!isProvisioning) {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onNavigateToServerList() 
+                    onNavigateToServerList()
                 }
             },
         colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.05f)),
@@ -718,11 +762,11 @@ private fun ConnectButton(
         colors = ButtonDefaults.buttonColors(
             containerColor = when {
                 isProvisioning -> Color(0xFFFFA726)
-                isConnected -> MaterialTheme.colorScheme.error
+                isConnected -> Color.Red
                 else -> MaterialTheme.colorScheme.primary
             }
         ),
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(16.dp),
         enabled = !isProvisioning
     ) {
         if (isProvisioning) {
@@ -751,7 +795,7 @@ private fun AlwaysOnButton(modifier: Modifier = Modifier, compact: Boolean = fal
             }
         },
         modifier = modifier,
-        shape = RoundedCornerShape(if (compact) 16.dp else 28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.White.copy(alpha = 0.05f),
             contentColor = Color.White
@@ -814,7 +858,7 @@ private fun AddWidgetButton(modifier: Modifier = Modifier, compact: Boolean = fa
             }
         },
         modifier = modifier,
-        shape = RoundedCornerShape(if (compact) 16.dp else 28.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = Color.White.copy(alpha = 0.05f),
             contentColor = Color.White
@@ -828,19 +872,21 @@ private fun AddWidgetButton(modifier: Modifier = Modifier, compact: Boolean = fa
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                Icons.Filled.Add,
-                "Add Widget",
-                modifier = Modifier.size(if (compact) 16.dp else 18.dp)
-            )
-            Spacer(Modifier.width(if (compact) 4.dp else 8.dp))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "Add VPN Widget",
-                    fontSize = if (compact) 12.sp else 14.sp,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
+                Row {
+                    Icon(
+                        Icons.Filled.Add,
+                        "Add Widget",
+                        modifier = Modifier.size(if (compact) 16.dp else 18.dp)
+                    )
+                    Spacer(Modifier.width(2.dp))
+                    Text(
+                        "Add VPN Widget",
+                        fontSize = if (compact) 12.sp else 14.sp,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+                }
                 if (!compact) {
                     Text(
                         "Pin quick connect to home screen",

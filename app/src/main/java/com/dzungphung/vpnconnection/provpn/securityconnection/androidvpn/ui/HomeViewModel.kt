@@ -118,7 +118,7 @@ class HomeViewModel @Inject constructor(
                     TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps(), hasPremiumAccess.value)
 
                     // Wait a moment for tunnel interface to come up
-                    delay(3000)
+                    delay(2000)
 
                     // Verify ACTUAL connectivity (not just tunnel state)
                     // WireGuard reports UP before handshake completes!
