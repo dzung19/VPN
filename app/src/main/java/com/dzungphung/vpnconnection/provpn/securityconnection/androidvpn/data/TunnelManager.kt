@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
+import androidx.core.graphics.createBitmap
 
 object TunnelManager {
     private const val TAG = "TunnelManager"
@@ -110,14 +112,14 @@ object TunnelManager {
         )
 
         val notification = NotificationCompat.Builder(ctx, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.mipmap.ic_launcher) // Status bar expects transparent silhouette
             .setContentTitle("VPN Connected: $serverName")
             .setContentText("\u2193 $rxSpeed  \u2191 $txSpeed")
             .setOngoing(true) // Can't be swiped away
             .setOnlyAlertOnce(true) // Don't sound/vibrate on every speed update
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(pendingIntent)
-            .addAction(R.drawable.ic_launcher_foreground, "Disconnect", disconnectPendingIntent)
+            .addAction(R.mipmap.ic_launcher, "Disconnect", disconnectPendingIntent)
             .build()
 
         val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
@@ -334,5 +336,15 @@ object TunnelManager {
         override fun onStateChange(newState: Tunnel.State) {
             _tunnelState.value = newState
         }
+    }
+
+    private fun getBitmapFromDrawable(context: Context, drawableId: Int): android.graphics.Bitmap? {
+        val drawable = androidx.core.content.ContextCompat.getDrawable(context, drawableId) ?: return null
+        // 192x192 is standard xxhdpi size, large enough to fill the notification circle crisp and clear
+        val bitmap = createBitmap(192, 192)
+        val canvas = android.graphics.Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
     }
 }
