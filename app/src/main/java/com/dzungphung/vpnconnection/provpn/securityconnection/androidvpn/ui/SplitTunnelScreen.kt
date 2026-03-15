@@ -1,6 +1,7 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,14 +35,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.AppIconCache
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.AppInfo
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -133,6 +140,7 @@ fun SplitTunnelScreen(
                     ) { appInfo ->
                         AppItem(
                             appInfo = appInfo,
+                            iconCache = viewModel.iconCache,
                             onToggle = { packageName ->
                                 viewModel.toggleApp(packageName)
                             }
@@ -147,9 +155,16 @@ fun SplitTunnelScreen(
 @Composable
 private fun AppItem(
     appInfo: AppInfo,
+    iconCache: AppIconCache,
     onToggle: (String) -> Unit
 ) {
     val isChecked = remember(appInfo.isExcluded) { mutableStateOf(appInfo.isExcluded) }
+
+    // Lazy-load icon asynchronously using produceState
+    // Only loads when this item scrolls into view; cache prevents redundant loads
+    val iconBitmap by produceState<ImageBitmap?>(initialValue = null, appInfo.packageName) {
+        value = iconCache.getIcon(appInfo.packageName)?.asImageBitmap()
+    }
 
     Row(
         modifier = Modifier
@@ -157,12 +172,21 @@ private fun AppItem(
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // App icon
-        appInfo.icon?.let { bitmap ->
+        // App icon — lazy loaded with placeholder
+        if (iconBitmap != null) {
             Image(
-                bitmap = bitmap.asImageBitmap(),
+                bitmap = iconBitmap!!,
                 contentDescription = appInfo.appName,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier
+                    .size(40.dp)
+            )
+        } else {
+            // Placeholder while icon is loading
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Gray.copy(alpha = 0.3f))
             )
         }
 
@@ -180,9 +204,9 @@ private fun AppItem(
 
         Switch(
             checked = isChecked.value,
-            onCheckedChange = { 
+            onCheckedChange = {
                 isChecked.value = it
-                onToggle(appInfo.packageName) 
+                onToggle(appInfo.packageName)
             }
         )
     }

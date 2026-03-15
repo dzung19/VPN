@@ -8,18 +8,16 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.Immutable
-import androidx.core.graphics.drawable.toBitmap
 import androidx.core.content.edit
 
 @Immutable
 data class AppInfo(
     val packageName: String,
     val appName: String,
-    val isExcluded: Boolean,
-    val icon: Bitmap? = null
+    val isExcluded: Boolean
+    // No Bitmap here! Icons are loaded lazily via AppIconCache
 )
 
 @Singleton
@@ -59,7 +57,7 @@ class SplitTunnelRepository @Inject constructor(
         val excluded = getExcludedApps()
         val ownPackage = context.packageName
 
-        // Use launcher intent query ΓÇö works with <queries> in manifest, no QUERY_ALL_PACKAGES needed
+        // Use launcher intent query — works with <queries> in manifest, no QUERY_ALL_PACKAGES needed
         val launcherIntent = Intent(Intent.ACTION_MAIN, null).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
         }
@@ -70,17 +68,10 @@ class SplitTunnelRepository @Inject constructor(
                 val packageName = appInfo.packageName
                 if (packageName == ownPackage) return@mapNotNull null
 
-                val iconBitmap = try {
-                    appInfo.loadIcon(pm)?.toBitmap()
-                } catch (e: Exception) {
-                    null
-                }
-
                 AppInfo(
                     packageName = packageName,
                     appName = appInfo.loadLabel(pm).toString(),
-                    isExcluded = excluded.contains(packageName),
-                    icon = iconBitmap
+                    isExcluded = excluded.contains(packageName)
                 )
             }
             .distinctBy { it.packageName }

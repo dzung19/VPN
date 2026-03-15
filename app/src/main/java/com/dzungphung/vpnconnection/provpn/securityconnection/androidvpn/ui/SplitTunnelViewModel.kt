@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.AppInfo
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.SplitTunnelRepository
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.AppIconCache
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.BillingManager
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.WalletManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class SplitTunnelViewModel @Inject constructor(
     private val repository: SplitTunnelRepository,
     private val billingManager: BillingManager,
-    private val walletManager: WalletManager
+    private val walletManager: WalletManager,
+    val iconCache: AppIconCache
 ) : ViewModel() {
 
     private val _apps = MutableStateFlow<List<AppInfo>>(emptyList())
