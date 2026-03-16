@@ -81,6 +81,7 @@ fun ServerListScreen(
                 }
                 item {
                     val isWarpSelected = currentConfig?.name == "Cloudflare WARP"
+                    Log.d("HomeViewModel", "${currentConfig?.name} ${isWarpSelected}" ?: "fail")
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = if (isWarpSelected) MaterialTheme.colorScheme.primaryContainer
@@ -89,9 +90,7 @@ fun ServerListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                if (!isWarpSelected) {
-                                    viewModel.createCloudflareConfig()
-                                }
+                                viewModel.tempSelectCloudFlareConfig()
                                 onNavigateBack()
                             },
                         shape = RoundedCornerShape(12.dp)
@@ -162,7 +161,11 @@ fun ServerListScreen(
                 }
             }
             if (!hasPremiumAccess) {
-                BannerAd(Modifier.fillMaxWidth().padding(padding).height(60.dp).navigationBarsPadding())
+                BannerAd(Modifier
+                    .fillMaxWidth()
+                    .padding(padding)
+                    .height(60.dp)
+                    .navigationBarsPadding())
             }
         }
     }

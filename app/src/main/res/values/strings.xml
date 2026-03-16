@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Android VPN</string>
+    <string name="app_name">Wake VPN</string>
     <string name="policy_yes">Yes</string>
     <string name="tap_to_connect">Tap to Connect</string>
     <string name="widget_description">VPN widget quick connect</string>"

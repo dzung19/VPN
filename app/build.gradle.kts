@@ -38,7 +38,7 @@ android {
             buildConfigField("String", "BANNER_AD_ID", "\"ca-app-pub-3940256099942544/6300978111\"")
             buildConfigField("String", "INTERSTITIAL_AD_ID", "\"ca-app-pub-3940256099942544/1033173712\"")
             buildConfigField("String", "REMOVE_ADS_SKU", "\"android.test.purchased\"")
-            buildConfigField("Boolean", "ADS_DISABLED", "false")
+            buildConfigField("Boolean", "ADS_DISABLED", "true")
             manifestPlaceholders["caAppPubId"] = "ca-app-pub-3940256099942544~3347511713"
         }
         release {
@@ -48,7 +48,7 @@ android {
             buildConfigField("String", "INTERSTITIAL_AD_ID", "\"${localProperties.getProperty("INTERSTITIAL_AD_ID")}\"")
             buildConfigField("String", "REMOVE_ADS_SKU", "\"test\"")
             buildConfigField("Boolean", "ADS_DISABLED", "false")
-            manifestPlaceholders["caAppPubId"] = "ca-app-pub-9439921169677011~9566091994"
+            manifestPlaceholders["caAppPubId"] = "ca-app-pub-9439921169677011~5762239046"
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

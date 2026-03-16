@@ -52,7 +52,7 @@ class SplitTunnelRepository @Inject constructor(
         saveExcludedApps(current)
     }
 
-    suspend fun getInstalledApps(): List<AppInfo> = withContext(Dispatchers.Default) {
+    suspend fun getInstalledApps(): List<AppInfo> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         val excluded = getExcludedApps()
         val ownPackage = context.packageName

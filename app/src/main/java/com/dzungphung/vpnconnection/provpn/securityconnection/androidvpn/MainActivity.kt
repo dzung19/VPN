@@ -1,32 +1,27 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn
 
-import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.AddServerScreen
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.HomeScreen
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.ServerListScreen
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.SplitTunnelScreen
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.WalletScreen
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.TermsOfServiceScreen
-
-import dagger.hilt.android.AndroidEntryPoint
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.HomeScreen
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.HomeViewModel
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.ServerListScreen
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.SplitTunnelScreen
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.TermsOfServiceScreen
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.WalletScreen
+import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -92,11 +87,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToWallet = { navController.navigate("wallet") }
                             )
                         }
-                        composable("add_server") {
-                            AddServerScreen(
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
+
                         composable("split_tunnel") {
                             SplitTunnelScreen(
                                 onNavigateBack = { navController.popBackStack() }

@@ -11,6 +11,7 @@ import com.wireguard.android.backend.Tunnel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -25,12 +26,12 @@ class VpnActionReceiver : BroadcastReceiver() {
         val action = intent.action
 
         if (action == "DISCONNECT_VPN") {
-            CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 TunnelManager.stopTunnel()
                 updateWidgets(context)
             }
         } else if (action == "TOGGLE_VPN") {
-            CoroutineScope(Dispatchers.IO).launch {
+            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
                 if (TunnelManager.tunnelState.value == Tunnel.State.UP) {
                     TunnelManager.stopTunnel()
                 } else {

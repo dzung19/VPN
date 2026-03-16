@@ -5,14 +5,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.BitmapFactory
 import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.MainActivity
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.ServerConfig
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.WalletManager
 import com.wireguard.android.backend.Backend
 import com.wireguard.android.backend.BackendException
 import com.wireguard.android.backend.GoBackend
@@ -24,13 +22,14 @@ import com.wireguard.config.Peer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
-import androidx.core.graphics.createBitmap
+import java.util.Locale
 
 object TunnelManager {
     private const val TAG = "TunnelManager"
@@ -42,6 +41,7 @@ object TunnelManager {
 
     private val _tunnelState = MutableStateFlow(Tunnel.State.DOWN)
     val tunnelState: StateFlow<Tunnel.State> = _tunnelState.asStateFlow()
+    val isPeerDead = MutableStateFlow(false)
 
     var tunnelStartTimeMillis: Long = 0
         private set
@@ -139,6 +139,9 @@ object TunnelManager {
 
         val walletManager = appContext?.let { WalletManager(it) }
 
+        var lastRxTime = System.currentTimeMillis()
+        var lastTxTime = System.currentTimeMillis()
+
         speedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
             while (tunnelState.value == Tunnel.State.UP) {
                 try {
@@ -150,6 +153,23 @@ object TunnelManager {
                         if (lastRxBytes > 0 || lastTxBytes > 0) {
                             val rxDelta = totalRx - lastRxBytes
                             val txDelta = totalTx - lastTxBytes
+
+                            if (rxDelta > 0) {
+                                lastRxTime = System.currentTimeMillis()
+                                isPeerDead.value = false
+                            }
+
+                            if (txDelta > 0) {
+                                lastTxTime = System.currentTimeMillis()
+                            }
+
+                            val now = System.currentTimeMillis()
+                            // If we have sent packets in the last 60s, but haven't received anything in 120s
+                            if ((now - lastRxTime) > 120_000L && (now - lastTxTime) < 60_000L) {
+                                Log.w(TAG, "Wireguard Peer appears dead! Triggering auto-reconnect.")
+                                isPeerDead.value = true
+                                lastRxTime = now // Reset timer to avoid spamming the flag
+                            }
 
                             val totalDelta = rxDelta + txDelta
                             if (totalDelta > 0 && isPremiumServer) {
@@ -183,7 +203,7 @@ object TunnelManager {
                 } catch (e: Exception) {
                     // Ignore transient errors reading stats
                 }
-                kotlinx.coroutines.delay(1000)
+                delay(1000)
             }
         }
     }
@@ -191,10 +211,10 @@ object TunnelManager {
     private fun formatBytes(bytes: Long): String {
         if (bytes < 1024) return "$bytes B"
         val kb = bytes / 1024.0
-        if (kb < 1024) return String.format("%.1f KB", kb)
+        if (kb < 1024) return String.format(Locale.getDefault(), "%.1f KB", kb)
         val mb = kb / 1024.0
-        if (mb < 1024) return String.format("%.1f MB", mb)
-        return String.format("%.1f GB", mb / 1024.0)
+        if (mb < 1024) return String.format(Locale.getDefault(), "%.1f MB", mb)
+        return String.format(Locale.getDefault(), "%.1f GB", mb / 1024.0)
     }
 
     suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet(), hasPremiumAccess: Boolean = false) =
@@ -336,15 +356,5 @@ object TunnelManager {
         override fun onStateChange(newState: Tunnel.State) {
             _tunnelState.value = newState
         }
-    }
-
-    private fun getBitmapFromDrawable(context: Context, drawableId: Int): android.graphics.Bitmap? {
-        val drawable = androidx.core.content.ContextCompat.getDrawable(context, drawableId) ?: return null
-        // 192x192 is standard xxhdpi size, large enough to fill the notification circle crisp and clear
-        val bitmap = createBitmap(192, 192)
-        val canvas = android.graphics.Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return bitmap
     }
 }

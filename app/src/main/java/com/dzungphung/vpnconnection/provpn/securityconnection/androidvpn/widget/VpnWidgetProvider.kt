@@ -27,7 +27,7 @@ class VpnWidgetProvider : AppWidgetProvider() {
         super.onReceive(context, intent)
         Log.d("VpnWidgetProvider", "onReceive: ${intent.action}")
         if (intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE ||
-            intent.action == "com.example.com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ACTION_WIDGET_REFRESH" ||
+            intent.action == "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ACTION_WIDGET_REFRESH" ||
             intent.action == AppWidgetManager.ACTION_APPWIDGET_OPTIONS_CHANGED
         ) {
             val appWidgetManager = AppWidgetManager.getInstance(context)

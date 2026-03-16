@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.components.BannerAd
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.StoreProduct
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,9 +117,9 @@ fun BalanceCard(dataBalance: Long, timePassActiveUntil: Long?) {
             Spacer(modifier = Modifier.height(8.dp))
             
             val formattedData = if (dataBalance > 1024 * 1024 * 1024) {
-                String.format("%.1f GB", dataBalance / (1024f * 1024f * 1024f))
+                String.format(Locale.getDefault(),"%.1f GB", dataBalance / (1024f * 1024f * 1024f))
             } else {
-                String.format("%.1f MB", dataBalance / (1024f * 1024f))
+                String.format(Locale.getDefault(),"%.1f MB", dataBalance / (1024f * 1024f))
             }
             
             Text("Data: $formattedData", fontSize = 24.sp, fontWeight = FontWeight.Bold)

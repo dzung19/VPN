@@ -72,7 +72,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -104,11 +106,32 @@ fun HomeScreen(
 ) {
     val vpnState by viewModel.vpnState.collectAsState()
     val currentConfig by viewModel.currentConfig.collectAsState()
-    val duration by viewModel.connectionDuration.collectAsState()
+    val duration = viewModel.connectionDuration.collectAsState()
     val isProvisioning by viewModel.isProvisioning.collectAsState()
-    val latencyMs by viewModel.latencyMs.collectAsState()
+    val latencyMs = viewModel.latencyMs.collectAsState()
     val hasPremiumAccess by viewModel.hasPremiumAccess.collectAsState()
-    Log.d("HomeScreen", "$hasPremiumAccess")
+
+    val latencyText = remember {
+        derivedStateOf {
+            when {
+                latencyMs.value == null -> "⏳"
+                latencyMs.value!! < 0 -> "--"
+                else -> "${latencyMs.value}ms"
+            }
+        }
+    }
+
+    val latencyColor = remember {
+        derivedStateOf {
+            when {
+                latencyMs.value == null -> Color.LightGray
+                latencyMs.value!! < 0 -> Color.LightGray
+                latencyMs.value!! < 100 -> Color(0xFF00E676)
+                latencyMs.value!! < 200 -> Color(0xFFFFCA28)
+                else -> Color(0xFFFF5252)
+            }
+        }
+    }
 
     // Start/stop latency monitor based on VPN state
     LaunchedEffect(vpnState, currentConfig?.endpoint) {
@@ -257,7 +280,7 @@ fun HomeScreen(
                         isProvisioning = isProvisioning,
                         statusColor = statusColor,
                         statusText = statusText,
-                        duration = duration,
+                        duration = { duration.value },
                         circleSize = 200
                     )
 
@@ -285,7 +308,8 @@ fun HomeScreen(
                     // Server card
                     ServerCard(
                         currentConfig = currentConfig,
-                        latencyMs = latencyMs,
+                        latencyMs = { latencyText.value },
+                        latencyColor = latencyColor.value ,
                         isProvisioning = isProvisioning,
                         onNavigateToServerList = onNavigateToServerList
                     )
@@ -425,7 +449,7 @@ fun HomeScreen(
                     isProvisioning = isProvisioning,
                     statusColor = statusColor,
                     statusText = statusText,
-                    duration = duration,
+                    duration = { duration.value },
                     circleSize = 240
                 )
 
@@ -434,7 +458,8 @@ fun HomeScreen(
                 // Server card
                 ServerCard(
                     currentConfig = currentConfig,
-                    latencyMs = latencyMs,
+                    latencyMs = { latencyText.value },
+                    latencyColor = latencyColor.value,
                     isProvisioning = isProvisioning,
                     onNavigateToServerList = onNavigateToServerList
                 )
@@ -523,25 +548,6 @@ fun HomeScreen(
                     .height(60.dp)
             )
         }
-        // Floating Wallet Button
-//        FloatingActionButton(
-//            onClick = {
-//                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-//                onNavigateToWallet()
-//            },
-//            modifier = Modifier
-//                .align(Alignment.BottomEnd)
-//                .padding(bottom = 90.dp, end = 24.dp),
-//            containerColor = Color(0xFF6200EA), // Vibrant purple
-//            contentColor = Color.White,
-//            shape = RoundedCornerShape(16.dp)
-//        ) {
-//            Row(modifier = Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-//                Text("🛡️", fontSize = 18.sp)
-//                Spacer(modifier = Modifier.width(8.dp))
-//                Text("Passes", fontWeight = FontWeight.Bold)
-//            }
-//        }
     }
 }
 
@@ -552,7 +558,7 @@ private fun StatusCircle(
     isProvisioning: Boolean,
     statusColor: Color,
     statusText: String,
-    duration: String,
+    duration: () -> String,
     circleSize: Int
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "PulseTransition")
@@ -646,7 +652,7 @@ private fun StatusCircle(
             }
             if (isConnected) {
                 Text(
-                    text = duration,
+                    text = duration(),
                     fontSize = if (circleSize > 200) 16.sp else 13.sp,
                     color = statusColor.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 4.dp)
@@ -667,7 +673,8 @@ private fun StatusCircle(
 @Composable
 private fun ServerCard(
     currentConfig: ServerConfig?,
-    latencyMs: Long?,
+    latencyMs: () -> String,
+    latencyColor: Color,
     isProvisioning: Boolean,
     onNavigateToServerList: () -> Unit
 ) {
@@ -706,24 +713,12 @@ private fun ServerCard(
                         modifier = Modifier.weight(1f)
                     )
                     // Latency badge
-                    val latencyText = when {
-                        latencyMs == null -> "⏳"
-                        latencyMs < 0 -> "--"
-                        else -> "${latencyMs}ms"
-                    }
-                    val latencyColor = when {
-                        latencyMs == null -> Color.LightGray
-                        latencyMs < 0 -> Color.LightGray
-                        latencyMs < 100 -> Color(0xFF00E676)
-                        latencyMs < 200 -> Color(0xFFFFCA28)
-                        else -> Color(0xFFFF5252)
-                    }
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = latencyColor.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = latencyText,
+                            text = latencyMs(),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = latencyColor,
