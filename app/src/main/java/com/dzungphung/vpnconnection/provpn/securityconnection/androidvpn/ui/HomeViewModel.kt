@@ -89,8 +89,44 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun tempSelectCloudFlareConfig() {
-        _currentConfig.value = ServerConfig(name = "Cloudflare WARP", "", "")
+    /**
+     * Called from ServerListScreen when user picks the WARP (free) server.
+     * Only sets a placeholder config — actual registration happens in toggleVpn().
+     */
+    fun selectWarp() {
+        viewModelScope.launch {
+            val placeholder = ServerConfig(
+                name = "Cloudflare WARP",
+                privateKey = "",
+                address = "",
+                country = "Cloudflare",
+                city = "WARP",
+                flag = "\uD83C\uDF10",
+                isPremium = false
+            )
+            repository.saveCurrentConfig(placeholder)
+            _currentConfig.value = placeholder
+        }
+    }
+
+    /**
+     * Called from ServerListScreen when user picks a premium server.
+     * Only stores selection — actual connection happens when user taps CONNECT.
+     */
+    fun selectServerItem(serverItem: ServerItemDto) {
+        viewModelScope.launch {
+            val config = ServerConfig(
+                name = "${serverItem.flag} ${serverItem.city}",
+                privateKey = "",
+                address = "",
+                country = serverItem.country,
+                city = serverItem.city,
+                flag = serverItem.flag,
+                isPremium = true
+            )
+            repository.saveCurrentConfig(config)
+            _currentConfig.value = config
+        }
     }
 
     suspend fun createCloudflareConfig() {
@@ -120,9 +156,8 @@ class HomeViewModel @Inject constructor(
             try {
                 TunnelManager.startTunnel(
                     config,
-                    splitTunnelRepository.getExcludedApps(),
-                    hasPremiumAccess.value
-                )
+                    splitTunnelRepository.getExcludedApps()
+                ) { hasPremiumAccess.value }
 
                 // Wait a moment for tunnel interface to come up
                 delay(2000)
@@ -229,26 +264,20 @@ class HomeViewModel @Inject constructor(
         _latencyMs.value = null
     }
 
-    // Connect to a specific server item (from UI)
-    fun connectToServer(serverItem: ServerItemDto) {
-        viewModelScope.launch {
-            // Stop current tunnel if running
-            withContext(NonCancellable) {
-                if (vpnState.value == Tunnel.State.UP) {
-                    TunnelManager.stopTunnel()
-                }
-
-                _isProvisioning.value = true
-                val config = repository.connectToServer(serverItem)
-                if (config != null) {
-                    _currentConfig.value = config
-                    // VM adds peer instantly via HTTP API, no delay needed
-                    _isProvisioning.value = false
-                    TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps(), hasPremiumAccess.value)
-                } else {
-                    _isProvisioning.value = false
-                }
-            }
+    // Connect to a specific server item (internal — called from toggleVpn)
+    private suspend fun connectToServer(serverItem: ServerItemDto) {
+        _isProvisioning.value = true
+        val config = repository.connectToServer(serverItem)
+        if (config != null) {
+            _currentConfig.value = config
+            _isProvisioning.value = false
+            TunnelManager.startTunnel(
+                config,
+                splitTunnelRepository.getExcludedApps(),
+                { true }
+            )
+        } else {
+            _isProvisioning.value = false
         }
     }
 
@@ -258,7 +287,7 @@ class HomeViewModel @Inject constructor(
             if (vpnState.value == Tunnel.State.UP) {
                 TunnelManager.stopTunnel()
             } else {
-                // WARP configs go stale after disconnect ΓÇö always re-register
+                // WARP configs go stale after disconnect — always re-register
                 if (config.name == "Cloudflare WARP") {
                     Log.d("HomeViewModel", "WARP detected, re-registering fresh keys...")
                     createCloudflareConfig()
@@ -266,9 +295,15 @@ class HomeViewModel @Inject constructor(
                     return@launch
                 }
 
-                val excluded = splitTunnelRepository.getExcludedApps()
-                Log.d("HomeViewModel", "toggleVpn: excluded apps = ${excluded.size}")
-                TunnelManager.startTunnel(config, excluded)
+                // Premium server — find the matching server item and connect via API
+                val serverItem = _serverList.value.find {
+                    "${it.flag} ${it.city}" == config.name
+                }
+                if (serverItem != null) {
+                    connectToServer(serverItem)
+                } else {
+                    Log.e("HomeViewModel", "Could not find server for: ${config.name}")
+                }
             }
             context.updateWidget()
         }

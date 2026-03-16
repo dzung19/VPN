@@ -132,7 +132,7 @@ object TunnelManager {
         manager?.cancel(NOTIFICATION_ID)
     }
 
-    private fun startSpeedMonitor(serverName: String, isPremiumServer: Boolean = false, hasPremiumAccess: Boolean = false) {
+    private fun startSpeedMonitor(serverName: String, isPremiumServer: Boolean = false, hasPremiumAccess: () -> Boolean = { false }) {
         speedMonitorJob?.cancel()
         lastRxBytes = 0
         lastTxBytes = 0
@@ -174,7 +174,7 @@ object TunnelManager {
                             val totalDelta = rxDelta + txDelta
                             if (totalDelta > 0 && isPremiumServer) {
                                 // Manage data passes! If not premium (no sub, no trial), check wallet
-                                if (!hasPremiumAccess && walletManager != null) {
+                                if (!hasPremiumAccess() && walletManager != null) {
                                     val timeActiveUntil = walletManager.timePassActiveUntilMs.value
                                     val isTimePassActive = timeActiveUntil != null && timeActiveUntil > System.currentTimeMillis()
                                     
@@ -217,7 +217,7 @@ object TunnelManager {
         return String.format(Locale.getDefault(), "%.1f GB", mb / 1024.0)
     }
 
-    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet(), hasPremiumAccess: Boolean = false) =
+    suspend fun startTunnel(config: ServerConfig, excludedApps: Set<String> = emptySet(), hasPremiumAccess: () -> Boolean = { false }) =
         withContext(Dispatchers.IO) {
             try {
                 val wgConfig = buildWireGuardConfig(config, excludedApps)

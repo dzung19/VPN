@@ -90,7 +90,7 @@ fun ServerListScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable {
-                                viewModel.tempSelectCloudFlareConfig()
+                                viewModel.selectWarp()
                                 onNavigateBack()
                             },
                         shape = RoundedCornerShape(12.dp)
@@ -152,7 +152,7 @@ fun ServerListScreen(
                                 showPaywall = true
                             } else {
                                 if (!isSelected) {
-                                    viewModel.connectToServer(server)
+                                    viewModel.selectServerItem(server)
                                 }
                                 onNavigateBack()
                             }

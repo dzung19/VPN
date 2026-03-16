@@ -63,7 +63,7 @@ class VpnActionReceiver : BroadcastReceiver() {
 
                     if (config != null) {
                         try {
-                            TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps(), hasAcc)
+                            TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps()) { hasAcc }
                         } catch (e: Exception) {
                             Log.e("VpnActionReceiver", "Failed to start VPN via widget", e)
                         }

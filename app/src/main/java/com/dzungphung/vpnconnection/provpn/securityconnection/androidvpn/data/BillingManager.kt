@@ -36,7 +36,7 @@ class BillingManager @Inject constructor(
             "pass_data_1gb", "pass_data_3gb", "pass_data_5gb", "pass_data_10gb"
         )
         // Set to false for production!
-        const val TEST_MODE = false
+        const val TEST_MODE = true
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
