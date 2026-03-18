@@ -13,7 +13,9 @@ import android.widget.RemoteViews
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.TunnelManager
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.VpnActionReceiver
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.di.TunnelManagerEntryPoint
 import com.wireguard.android.backend.Tunnel
+import dagger.hilt.android.EntryPointAccessors
 
 class VpnWidgetProvider : AppWidgetProvider() {
 
@@ -46,8 +48,9 @@ class VpnWidgetProvider : AppWidgetProvider() {
     companion object {
         fun updateAppWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_vpn)
+            val tunnelManager = getTunnelManager(context)
 
-            val isConnected = TunnelManager.tunnelState.value == Tunnel.State.UP
+            val isConnected = tunnelManager.tunnelState.value == Tunnel.State.UP
 
 
             if (isConnected) {
@@ -57,7 +60,7 @@ class VpnWidgetProvider : AppWidgetProvider() {
                 views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_connected)
                 
                 views.setViewVisibility(R.id.widget_timer, View.VISIBLE)
-                views.setChronometer(R.id.widget_timer, TunnelManager.tunnelStartTimeMillis, null, true)
+                views.setChronometer(R.id.widget_timer, tunnelManager.tunnelStartTimeMillis, null, true)
             } else {
                 views.setTextViewText(R.id.widget_text, "Tap to Connect")
                 views.setImageViewResource(R.id.widget_icon, R.drawable.ic_lock_unprotected)
@@ -78,6 +81,13 @@ class VpnWidgetProvider : AppWidgetProvider() {
             
             views.setOnClickPendingIntent(R.id.widget_container, pendingIntent)
             appWidgetManager.updateAppWidget(appWidgetId, views)
+        }
+
+        private fun getTunnelManager(context: Context): TunnelManager {
+            return EntryPointAccessors.fromApplication(
+                context.applicationContext,
+                TunnelManagerEntryPoint::class.java
+            ).tunnelManager()
         }
     }
 

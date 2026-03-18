@@ -81,7 +81,6 @@ fun ServerListScreen(
                 }
                 item {
                     val isWarpSelected = currentConfig?.name == "Cloudflare WARP"
-                    Log.d("HomeViewModel", "${currentConfig?.name} ${isWarpSelected}" ?: "fail")
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = if (isWarpSelected) MaterialTheme.colorScheme.primaryContainer

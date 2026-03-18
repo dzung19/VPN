@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -40,6 +41,7 @@ class HomeViewModel @Inject constructor(
     val billingManager: BillingManager,
     walletManager: WalletManager,
     val splitTunnelRepository: SplitTunnelRepository,
+    private val tunnelManager: TunnelManager,
 ) : ViewModel() {
 
     // Unified Premium State (Subscription OR Active Wallet Passes)
@@ -52,11 +54,11 @@ class HomeViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     // UI State
-    val vpnState = TunnelManager.tunnelState
-    
+    val vpnState = tunnelManager.tunnelState
+
     // Connected Duration (Placeholder for now)
     val connectionDuration = MutableStateFlow("00:00:00")
-    
+
     private val _currentConfig = MutableStateFlow<ServerConfig?>(null)
     val currentConfig: StateFlow<ServerConfig?> = _currentConfig
 
@@ -76,12 +78,11 @@ class HomeViewModel @Inject constructor(
     val latencyMs: StateFlow<Long?> = _latencyMs
 
 
-
     private fun loadData() {
         viewModelScope.launch {
             _configs.value = repository.getConfigs()
             _currentConfig.value = repository.getCurrentConfig()
-            
+
             // Fetch server list from API
             if (_serverList.value.isEmpty()) {
                 _serverList.value = repository.fetchServers()
@@ -135,7 +136,7 @@ class HomeViewModel @Inject constructor(
         // Stop current tunnel if running
         withContext(NonCancellable) {
             if (vpnState.value == Tunnel.State.UP) {
-                TunnelManager.stopTunnel()
+                tunnelManager.stopTunnel()
             }
         }
 
@@ -154,7 +155,7 @@ class HomeViewModel @Inject constructor(
             selectConfig(config)
 
             try {
-                TunnelManager.startTunnel(
+                tunnelManager.startTunnel(
                     config,
                     splitTunnelRepository.getExcludedApps()
                 ) { hasPremiumAccess.value }
@@ -164,18 +165,7 @@ class HomeViewModel @Inject constructor(
 
                 // Verify ACTUAL connectivity (not just tunnel state)
                 // WireGuard reports UP before handshake completes!
-                val reachable = withContext(Dispatchers.IO) {
-                    try {
-                        val socket = Socket()
-                        // Try DNS resolution first as it uses UDP and checks true internet access
-                        socket.connect(InetSocketAddress("1.1.1.1", 53), 8000)
-                        socket.close()
-                        true
-                    } catch (e: Exception) {
-                        Log.w("HomeViewModel", "Connectivity check failed: ${e.message}")
-                        false
-                    }
-                }
+                val reachable = canReachInternet(config.dns)
 
                 if (reachable) {
                     Log.d("HomeViewModel", "WARP connected on attempt $attempt: ${config.endpoint}")
@@ -189,14 +179,14 @@ class HomeViewModel @Inject constructor(
                     "HomeViewModel",
                     "WARP no connectivity on ${config.endpoint}, deleting and retrying..."
                 )
-                TunnelManager.stopTunnel()
+                tunnelManager.stopTunnel()
                 repository.removeConfig(config)
                 delay(500)
 
             } catch (e: Exception) {
                 Log.e("HomeViewModel", "WARP tunnel error: ${e.message}")
                 try {
-                    TunnelManager.stopTunnel()
+                    tunnelManager.stopTunnel()
                 } catch (_: Throwable) {
                 }
                 repository.removeConfig(config)
@@ -205,7 +195,7 @@ class HomeViewModel @Inject constructor(
 
         if (!connected) {
             try {
-                TunnelManager.stopTunnel()
+                tunnelManager.stopTunnel()
             } catch (_: Throwable) {
             }
             _currentConfig.value = null
@@ -240,19 +230,14 @@ class HomeViewModel @Inject constructor(
             while (true) {
                 val ms = try {
                     // Simple TCP connect to Cloudflare DNS ΓÇö fast, reliable, no SSL
-                    val socket = Socket()
-                    val start = System.currentTimeMillis()
-                    socket.connect(InetSocketAddress("1.1.1.1", 53), 8000)
-                    val elapsed = System.currentTimeMillis() - start
-                    socket.close()
-                    elapsed
+                    measureLatencyMs(3000,endpoint)
                 } catch (t: Throwable) {
                     Log.d("Latency", "Failed: ${t.javaClass.simpleName}")
                     -1L
+                } catch (e: Exception) {
+                    -1L
                 }
-                withContext(Dispatchers.Main) {
-                    _latencyMs.value = ms
-                }
+                _latencyMs.value = ms
                 delay(40_000L)
             }
         }
@@ -271,7 +256,7 @@ class HomeViewModel @Inject constructor(
         if (config != null) {
             _currentConfig.value = config
             _isProvisioning.value = false
-            TunnelManager.startTunnel(
+            tunnelManager.startTunnel(
                 config,
                 splitTunnelRepository.getExcludedApps(),
                 { true }
@@ -285,7 +270,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val config = _currentConfig.value ?: return@launch
             if (vpnState.value == Tunnel.State.UP) {
-                TunnelManager.stopTunnel()
+                tunnelManager.stopTunnel()
             } else {
                 // WARP configs go stale after disconnect — always re-register
                 if (config.name == "Cloudflare WARP") {
@@ -308,7 +293,7 @@ class HomeViewModel @Inject constructor(
             context.updateWidget()
         }
     }
-    
+
     private var timerJob: Job? = null
     private var startTime: Long = 0L
 
@@ -320,12 +305,15 @@ class HomeViewModel @Inject constructor(
 
     private fun startPeerWatchdog() {
         viewModelScope.launch {
-            TunnelManager.isPeerDead.collect { isDead ->
+            tunnelManager.isPeerDead.collect { isDead ->
                 if (isDead && !_isProvisioning.value && vpnState.value == Tunnel.State.UP) {
                     val config = _currentConfig.value ?: return@collect
                     if (config.name == "Cloudflare WARP") {
-                        Log.w("HomeViewModel", "Watchdog tripped: WARP peer is dead. Auto-reconnecting behind the scenes...")
-                        TunnelManager.isPeerDead.value = false // Reset state
+                        Log.w(
+                            "HomeViewModel",
+                            "Watchdog tripped: WARP peer is dead. Auto-reconnecting behind the scenes..."
+                        )
+                        tunnelManager.isPeerDead.value = false // Reset state
                         _isProvisioning.value = true
                         createCloudflareConfig()
                         context.updateWidget()
@@ -369,7 +357,67 @@ class HomeViewModel @Inject constructor(
         val seconds = (millis / 1000) % 60
         val minutes = (millis / (1000 * 60)) % 60
         val hours = (millis / (1000 * 60 * 60))
-        return String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        return String.format(Locale.getDefault(),"%02d:%02d:%02d", hours, minutes, seconds)
+    }
+
+    private suspend fun canReachInternet(
+        config: String?,
+        timeoutMs: Int = 2_500
+    ): Boolean = withContext(Dispatchers.IO) {
+        val targets = buildProbeTargets(config)
+
+        targets.any { target ->
+            runCatching {
+                Socket().use { socket ->
+                    socket.connect(target, timeoutMs)
+                }
+                true
+            }.getOrElse { error ->
+                Log.d("HomeViewModel", "Probe failed for ${target.hostString}:${target.port}: ${error.message}")
+                false
+            }
+        }
+    }
+
+    private suspend fun measureLatencyMs(timeoutMs: Int = 2_500, dns: String?): Long = withContext(Dispatchers.IO) {
+        val targets = buildProbeTargets(dns)
+
+        for (target in targets) {
+            val result = runCatching {
+                val start = System.currentTimeMillis()
+                Socket().use { socket ->
+                    socket.connect(target, timeoutMs)
+                }
+                System.currentTimeMillis() - start
+            }
+
+            result.onSuccess { return@withContext it }
+            result.onFailure { error ->
+                Log.d("Latency", "Failed for ${target.hostString}:${target.port}: ${error.javaClass.simpleName}")
+            }
+        }
+
+        -1L
+    }
+
+    private fun buildProbeTargets(config: String?): List<InetSocketAddress> {
+        val hosts = buildList {
+            config
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotEmpty() }
+                ?.let(::addAll)
+
+            add("1.1.1.1")
+            add("1.0.0.1")
+        }.distinct()
+
+        return hosts.flatMap { host ->
+            listOf(
+                InetSocketAddress(host, 53),
+                InetSocketAddress(host, 443)
+            )
+        }
     }
 
     fun checkVpnPermission(): Intent? {

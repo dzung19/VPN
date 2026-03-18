@@ -136,7 +136,7 @@ fun HomeScreen(
     // Start/stop latency monitor based on VPN state
     LaunchedEffect(vpnState, currentConfig?.endpoint) {
         if (vpnState == Tunnel.State.UP && currentConfig?.endpoint != null) {
-            viewModel.startLatencyMonitor(currentConfig?.endpoint)
+            viewModel.startLatencyMonitor(currentConfig?.dns)
         } else {
             viewModel.stopLatencyMonitor()
         }

@@ -1,5 +1,6 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.di
 
+import android.content.Context
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.CloudflareApi
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.VpnApiService
 import dagger.Module
@@ -11,12 +12,20 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.google.gson.GsonBuilder
 import com.google.gson.Strictness
+import com.wireguard.android.backend.GoBackend
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideGoBackend(@ApplicationContext context: Context): GoBackend {
+        return GoBackend(context)
+    }
 
     @Provides
     @Singleton

@@ -19,6 +19,7 @@ import com.wireguard.config.Config
 import com.wireguard.config.InetNetwork
 import com.wireguard.config.Interface
 import com.wireguard.config.Peer
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,14 +31,21 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.InetAddress
 import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object TunnelManager {
-    private const val TAG = "TunnelManager"
-    private const val CHANNEL_ID = "vpn_channel"
-    private const val NOTIFICATION_ID = 1
-    private var backend: Backend? = null
-    private var currentTunnel: InternalTunnel? = null
-    private var appContext: Context? = null
+@Singleton
+class TunnelManager @Inject constructor(
+    @param:ApplicationContext private val appContext: Context,
+    private val walletManager: WalletManager,
+    private val backend: GoBackend
+) : Tunnel {
+    companion object {
+        private const val TAG = "TunnelManager"
+        private const val CHANNEL_ID = "vpn_channel"
+        private const val NOTIFICATION_ID = 1
+        private const val TUNNEL_NAME = "wg0"
+    }
 
     private val _tunnelState = MutableStateFlow(Tunnel.State.DOWN)
     val tunnelState: StateFlow<Tunnel.State> = _tunnelState.asStateFlow()
@@ -46,27 +54,20 @@ object TunnelManager {
     var tunnelStartTimeMillis: Long = 0
         private set
 
-    // Initialize the GoBackend (must be called with Context)
-    fun init(context: Context) {
-        appContext = context.applicationContext
-        if (backend == null) {
-            backend = GoBackend(appContext!!)
+    // Eagerly initialize backend and restore state on app startup.
+    fun init() {
+        // Sync state across process boundaries (e.g., if started from widget)
+        val running = backend.runningTunnelNames.contains(TUNNEL_NAME)
+        val prefs = appContext.getSharedPreferences("vpn_widget_prefs", Context.MODE_PRIVATE)
 
-            // Sync state across process boundaries (e.g., if started from widget)
-            val running = backend?.runningTunnelNames?.contains("wg0") == true
-            val prefs = appContext!!.getSharedPreferences("vpn_widget_prefs", Context.MODE_PRIVATE)
+        if (running) {
+            _tunnelState.value = Tunnel.State.UP
+            tunnelStartTimeMillis = prefs.getLong("start_elapsed_ms", SystemClock.elapsedRealtime())
 
-            if (running) {
-                _tunnelState.value = Tunnel.State.UP
-                tunnelStartTimeMillis = prefs.getLong("start_elapsed_ms", SystemClock.elapsedRealtime())
-                currentTunnel = InternalTunnel("wg0")
-
-                // Resume the persistent notification loop if we just spawned this process
-                startSpeedMonitor("VPN Connected")
-            } else {
-                _tunnelState.value = Tunnel.State.DOWN
-                currentTunnel = null
-            }
+            // Resume the persistent notification loop if we just spawned this process
+            startSpeedMonitor("VPN Connected")
+        } else {
+            _tunnelState.value = Tunnel.State.DOWN
         }
         createNotificationChannel()
     }
@@ -81,7 +82,7 @@ object TunnelManager {
             setShowBadge(false)
         }
         val manager =
-            appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            appContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         manager?.createNotificationChannel(channel)
     }
 
@@ -94,7 +95,7 @@ object TunnelManager {
         rxSpeed: String = "0 B/s",
         txSpeed: String = "0 B/s"
     ) {
-        val ctx = appContext ?: return
+        val ctx = appContext
         val intent = Intent(ctx, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
@@ -128,7 +129,7 @@ object TunnelManager {
 
     private fun hideVpnNotification() {
         val manager =
-            appContext?.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+            appContext.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
         manager?.cancel(NOTIFICATION_ID)
     }
 
@@ -137,15 +138,13 @@ object TunnelManager {
         lastRxBytes = 0
         lastTxBytes = 0
 
-        val walletManager = appContext?.let { WalletManager(it) }
-
         var lastRxTime = System.currentTimeMillis()
         var lastTxTime = System.currentTimeMillis()
 
         speedMonitorJob = CoroutineScope(Dispatchers.IO).launch {
             while (tunnelState.value == Tunnel.State.UP) {
                 try {
-                    val stats = backend?.getStatistics(currentTunnel!!)
+                    val stats = backend.getStatistics(this@TunnelManager)
                     if (stats != null) {
                         val totalRx = stats.totalRx()
                         val totalTx = stats.totalTx()
@@ -174,7 +173,7 @@ object TunnelManager {
                             val totalDelta = rxDelta + txDelta
                             if (totalDelta > 0 && isPremiumServer) {
                                 // Manage data passes! If not premium (no sub, no trial), check wallet
-                                if (!hasPremiumAccess() && walletManager != null) {
+                                if (!hasPremiumAccess()) {
                                     val timeActiveUntil = walletManager.timePassActiveUntilMs.value
                                     val isTimePassActive = timeActiveUntil != null && timeActiveUntil > System.currentTimeMillis()
                                     
@@ -222,11 +221,8 @@ object TunnelManager {
             try {
                 val wgConfig = buildWireGuardConfig(config, excludedApps)
 
-                val newTunnel = InternalTunnel("wg0")
-                currentTunnel = newTunnel
-
                 // Use setState instead of apply (which conflicts with Kotlin's scope function)
-                backend?.setState(newTunnel, Tunnel.State.UP, wgConfig)
+                backend.setState(this@TunnelManager, Tunnel.State.UP, wgConfig)
                 tunnelStartTimeMillis = SystemClock.elapsedRealtime()
                 _tunnelState.value = Tunnel.State.UP
 
@@ -246,12 +242,9 @@ object TunnelManager {
 
     suspend fun stopTunnel() = withContext(Dispatchers.IO) {
         try {
-            currentTunnel?.let { tunnel ->
-                backend?.setState(tunnel, Tunnel.State.DOWN, null)
-            }
+            backend.setState(this@TunnelManager, Tunnel.State.DOWN, null)
             _tunnelState.value = Tunnel.State.DOWN
             Log.d(TAG, "Tunnel Stopped")
-            currentTunnel = null
             speedMonitorJob?.cancel()
             hideVpnNotification()
         } catch (e: Exception) {
@@ -349,12 +342,11 @@ object TunnelManager {
 
     // Extension function helper
     private fun Peer.Builder.addAllowedLib(network: InetNetwork) = this.addAllowedIp(network)
+    override fun getName(): String {
+        return TUNNEL_NAME
+    }
 
-    // Internal class implementing WireGuard's Tunnel interface
-    class InternalTunnel(private val name: String) : Tunnel {
-        override fun getName() = name
-        override fun onStateChange(newState: Tunnel.State) {
-            _tunnelState.value = newState
-        }
+    override fun onStateChange(newState: Tunnel.State) {
+        _tunnelState.value = newState
     }
 }

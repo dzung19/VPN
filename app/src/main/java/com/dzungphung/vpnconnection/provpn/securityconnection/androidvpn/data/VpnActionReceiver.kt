@@ -21,19 +21,20 @@ class VpnActionReceiver : BroadcastReceiver() {
     @Inject lateinit var serverRepository: ServerRepository
     @Inject lateinit var splitTunnelRepository: SplitTunnelRepository
     @Inject lateinit var walletManager: WalletManager
+    @Inject lateinit var tunnelManager: TunnelManager
 
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
 
         if (action == "DISCONNECT_VPN") {
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                TunnelManager.stopTunnel()
+                tunnelManager.stopTunnel()
                 updateWidgets(context)
             }
         } else if (action == "TOGGLE_VPN") {
             CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                if (TunnelManager.tunnelState.value == Tunnel.State.UP) {
-                    TunnelManager.stopTunnel()
+                if (tunnelManager.tunnelState.value == Tunnel.State.UP) {
+                    tunnelManager.stopTunnel()
                 } else {
                     var config = serverRepository.getCurrentConfig()
                     
@@ -63,7 +64,7 @@ class VpnActionReceiver : BroadcastReceiver() {
 
                     if (config != null) {
                         try {
-                            TunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps()) { hasAcc }
+                            tunnelManager.startTunnel(config, splitTunnelRepository.getExcludedApps()) { hasAcc }
                         } catch (e: Exception) {
                             Log.e("VpnActionReceiver", "Failed to start VPN via widget", e)
                         }

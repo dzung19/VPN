@@ -4,15 +4,17 @@ import android.app.Application
 import android.util.Log
 import com.daumo.ads.DynamicAdsManager
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.TunnelManager
-
 import dagger.hilt.android.HiltAndroidApp
+import javax.inject.Inject
 
 @HiltAndroidApp
 class VpnApp : Application() {
+    @Inject lateinit var tunnelManager: TunnelManager
+
     override fun onCreate() {
         super.onCreate()
         // Initialize WireGuard Backend
-        TunnelManager.init(this)
+        tunnelManager.init()
         if (isMainProcess()) {
             try {
                 // Check if ads should be disabled
