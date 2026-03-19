@@ -225,7 +225,7 @@ class HomeViewModel @Inject constructor(
         }
         latencyJob = viewModelScope.launch(Dispatchers.IO + handler) {
             // Wait for tunnel to stabilize before measuring
-            delay(2000L)
+            delay(1800L)
 
             while (true) {
                 val ms = try {
@@ -415,7 +415,6 @@ class HomeViewModel @Inject constructor(
         return hosts.flatMap { host ->
             listOf(
                 InetSocketAddress(host, 53),
-                InetSocketAddress(host, 443)
             )
         }
     }
