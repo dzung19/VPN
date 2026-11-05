@@ -21,10 +21,10 @@ android {
     }
     defaultConfig {
         applicationId = "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn"
-        minSdk = 28 // WireGuard requires minSdk 21+, but 26 is safer for modern features
+        minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.0.5"
+        versionCode = 5
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -60,6 +60,9 @@ android {
         compose = true
         buildConfig = true
     }
+    androidResources {
+        noCompress += "tflite"
+    }
     // composeOptions removed as it's not needed for Kotlin 2.0+ with the new plugin
     packaging {
         resources {
@@ -92,9 +95,10 @@ dependencies {
     implementation(libs.converter.gson)
     implementation(libs.okhttp)
 
-    // WireGuard
-    //noinspection Aligned16KB
-    implementation(libs.tunnel) // Updated
+    // LiteRT (TensorFlow Lite runtime with 16KB alignment support)
+    implementation(libs.litert)
+    implementation(libs.litert.api)
+    implementation(libs.litert.support)
     
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)

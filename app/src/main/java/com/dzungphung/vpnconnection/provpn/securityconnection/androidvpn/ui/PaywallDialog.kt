@@ -1,129 +1,141 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui
 
-import android.app.Activity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.BillingManager
+import androidx.compose.ui.window.Dialog
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
 
 @Composable
 fun PaywallDialog(
-    billingManager: BillingManager,
-    onNavigateToWallet: () -> Unit,
-    onDismiss: () -> Unit
+    price: String,
+    onDismiss: () -> Unit,
+    onPurchase: () -> Unit
 ) {
-    val price = billingManager.getFormattedPrice()
-    val context = LocalContext.current
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(24.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        icon = {
-            Icon(
-                Icons.Filled.Star,
-                contentDescription = null,
-                tint = Color(0xFFFFD700),
-                modifier = Modifier.size(48.dp)
-            )
-        },
-        title = {
-            Text(
-                text = "Upgrade to Premium",
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        text = {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = Color(0xFF1E1E2E),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "VIP",
+                            tint = Color(0xFFFFD700),
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Clap Finder VIP",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "Unlock all server locations worldwide",
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = stringResource(R.string.vip_desc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFFCCCCCC),
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                // Benefits
-                listOf(
-                    "\uD83C\uDF0D Global server locations",
-                    "\u26A1 Faster connection speeds",
-                    "\uD83D\uDD12 Dedicated VPN servers",
-                    "\uD83C\uDF81 7-day free trial"
-                ).forEach { benefit ->
+                VipFeatureItem(title = "Không có quảng cáo làm phiền")
+                VipFeatureItem(title = "Mở khóa toàn bộ âm thanh đặc biệt")
+                VipFeatureItem(title = "Nhận diện AI YAMNet siêu nhạy")
+                VipFeatureItem(title = "Hỗ trợ đèn Flash SOS & Nhịp tim")
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = {
+                        onPurchase()
+                        onDismiss()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFFFB300)
+                    )
+                ) {
                     Text(
-                        text = benefit,
-                        fontSize = 15.sp,
-                        modifier = Modifier.fillMaxWidth()
+                        text = "Nâng cấp ngay • $price",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        fontSize = 16.sp
                     )
                 }
 
-                Spacer(Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "$price/month after trial",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                    text = "Hủy bất kỳ lúc nào trên Google Play",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
                 )
-                OutlinedButton(
-                    onClick = {
-                        onDismiss()
-                        onNavigateToWallet()
-                    },
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text("Buy Single Passes (No Sub)", fontWeight = FontWeight.Bold)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    (context as? Activity)?.let { activity ->
-                        billingManager.launchPurchaseFlow(activity)
-                    }
-                    onDismiss()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6750A4)
-                )
-            ) {
-                Text("Start Free Trial", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Maybe Later")
             }
         }
-    )
+    }
+}
+
+@Composable
+private fun VipFeatureItem(title: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = Color(0xFF00E676),
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.White
+        )
+    }
 }

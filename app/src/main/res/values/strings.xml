@@ -1,6 +1,61 @@
 <resources>
-    <string name="app_name">Wake VPN</string>
-    <string name="policy_yes">Yes</string>
-    <string name="tap_to_connect">Tap to Connect</string>
-    <string name="widget_description">VPN widget quick connect</string>"
+    <string name="app_name">Clap to Find Phone</string>
+    <string name="widget_description">Clap Finder quick toggle</string>
+
+    <!-- Activation -->
+    <string name="tap_to_activate">Tap to Activate</string>
+    <string name="listening_active">Listening for Clap / Whistle…</string>
+    <string name="finder_inactive">Finder is Inactive</string>
+    <string name="tap_to_deactivate">Tap to Deactivate</string>
+    <string name="test_alarm">Test Alarm</string>
+    <string name="stop_alarm">STOP ALARM</string>
+    <string name="phone_found">Found Your Phone!</string>
+
+    <!-- Modes -->
+    <string name="detection_mode">Detection Mode</string>
+    <string name="mode_clap_only">Clap Only</string>
+    <string name="mode_whistle_only">Whistle Only</string>
+    <string name="mode_clap_and_whistle">Clap &amp; Whistle</string>
+
+    <!-- Sensitivity -->
+    <string name="sensitivity">Sensitivity</string>
+    <string name="sensitivity_low">Low</string>
+    <string name="sensitivity_medium">Medium</string>
+    <string name="sensitivity_high">High</string>
+
+    <!-- Alert features -->
+    <string name="sound_selection">Alarm Sound</string>
+    <string name="flash_mode">Flashlight</string>
+    <string name="flash_off">Off</string>
+    <string name="flash_strobe">Rapid Strobe</string>
+    <string name="flash_sos">SOS Flash</string>
+    <string name="flash_continuous">Continuous</string>
+
+    <string name="vibration_mode">Vibration</string>
+    <string name="vibration_off">Off</string>
+    <string name="vibration_strong">Strong</string>
+    <string name="vibration_heartbeat">Heartbeat</string>
+
+    <string name="battery_saver_title">Smart Battery Saver</string>
+    <string name="battery_saver_desc">Only detect when screen is locked/off (Recommended)</string>
+
+    <!-- Sounds -->
+    <string name="sound_police_siren">Police Siren</string>
+    <string name="sound_emergency_alarm">Emergency Alarm</string>
+    <string name="sound_air_horn">Air Horn</string>
+    <string name="sound_whistle">Whistle Chirp</string>
+    <string name="sound_cat_meow">Cat Meow</string>
+    <string name="sound_dog_bark">Dog Bark</string>
+
+    <!-- VIP / Premium -->
+    <string name="vip_upgrade">Go VIP Pro</string>
+    <string name="vip_active">VIP Member Active</string>
+    <string name="vip_desc">Unlock all sounds &amp; remove all ads permanently</string>
+    <string name="upgrade_button">Upgrade Now</string>
+    <string name="policy_yes">I Accept</string>
+
+    <!-- Notification -->
+    <string name="notification_title">Clap Finder is Active</string>
+    <string name="notification_desc">Clap hands or whistle to locate your phone</string>
+    <string name="action_stop">Stop</string>
 </resources>

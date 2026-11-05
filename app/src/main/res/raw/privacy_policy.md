@@ -1,74 +1,28 @@
-# Privacy Policy for Android VPN
+# Privacy Policy for Clap to Find Phone
 
-Last Updated: March 4, 2026
+Last Updated: March 2026
 
 ## Introduction
+Clap to Find Phone ("App") is an on-device utility application designed to help users locate their misplaced phone by detecting clapping or whistling sounds. Your privacy is our top priority.
 
-Android VPN ("App") is a virtual private network application designed to enhance your online privacy and security. This privacy policy explains our practices regarding data collection, use, and protection when you use our App.
+## Audio Processing & Microphone Permission
+- **On-Device Real-Time Analysis Only**: The App requests the `RECORD_AUDIO` and `FOREGROUND_SERVICE_MICROPHONE` permissions solely to perform real-time acoustic analysis on your device (using local AI model YAMNet).
+- **No Recording or Storage**: We do **NOT** record, save, store, or archive your voice, conversations, or ambient sound. Audio buffers are evaluated in volatile memory and immediately discarded.
+- **No Transmission**: Audio data is **NEVER** transmitted over the internet or sent to any remote server or third party. All detection runs 100% offline on your device.
 
-## Information We Collect
+## Camera & Flashlight Permission
+- The `CAMERA` and `FLASHLIGHT` permissions are requested exclusively to blink the device's rear torch light when an alert is triggered, making your phone visible in the dark.
+- The App does not capture photos, take videos, or access camera image sensors.
 
-### No Personal Information Collection
-We do not collect, store, or process any personal information from our users. This includes but is not limited to:
-- Names
-- Email addresses
-- Phone numbers
-- Location data
-- Device identifiers
-- Browsing history
-- Internet traffic data
+## Vibration Permission
+- The `VIBRATE` permission is used solely to vibrate the phone during an alarm so you can feel or hear it when the device is under a cushion or mattress.
 
-### Technical Information
-When you use our App, we may collect minimal technical information necessary for the App's functionality:
-- Connection logs (timestamp, data volume, server location) for diagnostic purposes, retained for maximum 30 days
-- App performance data to improve service quality
+## Advertisements and Purchases
+- We use Google AdMob to display banner, interstitial, and app open ads to keep the application free to use. AdMob may collect anonymous device identifiers in accordance with Google's Advertising Policies.
+- Google Play In-App Billing is used securely if you choose to purchase the optional VIP Pro upgrade. We do not store or process payment card details.
 
-## How We Use Your Information
-
-The information we collect is used solely for:
-- Establishing and maintaining VPN connections
-- Monitoring service performance
-- Troubleshooting technical issues
-- Improving user experience
-
-## Data Sharing and Disclosure
-
-We do not sell, trade, or rent your personal data to third parties. We do not share any user information with external entities, except in the following limited circumstances:
-- When required by law or legal process
-- To protect our rights, property, or safety, or that of our users or the public
-
-## Data Security
-
-We implement robust security measures to protect your information:
-- All data transmission uses strong encryption protocols
-- Our network security configuration enforces HTTPS and blocks cleartext traffic
-- We follow industry best practices for data protection
-
-## Permissions We Request
-
-Our App requires the following Android permissions for proper functionality:
-- **INTERNET**: To establish network connections
-- **FOREGROUND_SERVICE**: To run the VPN service in the foreground
-- **FOREGROUND_SERVICE_SPECIAL_USE**: To use special use foreground service for VPN functionality
-- **POST_NOTIFICATIONS**: To display connection status and notifications
-
-## Your Rights and Choices
-
-You have complete control over your data:
-- You can disconnect from the VPN service at any time
-- You can uninstall the App to remove all local data
-- You can disable notifications in your device settings
-
-## Children's Privacy
-
-Our App does not collect personal information from anyone, including children under 13. We do not knowingly market to or solicit information from children.
-
-## Changes to This Privacy Policy
-
-We may update this privacy policy from time to time. We will notify users of any material changes by posting the new policy in the App and updating the "Last Updated" date.
+## Changes to This Policy
+We may update our Privacy Policy periodically. Any updates will be reflected with a revised "Last Updated" date.
 
 ## Contact Us
-
-If you have any questions about this privacy policy, please contact us at: privacy@androidvpn.example.com
-
-By using Android VPN, you acknowledge that you have read and understood this privacy policy.
+If you have questions regarding this Privacy Policy, please contact our support team.
