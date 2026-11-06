@@ -168,8 +168,12 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            if (!isPremium) {
-                BannerAd()
+            if (!isPremium && !com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.BuildConfig.ADS_DISABLED) {
+                BannerAd(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(60.dp)
+                )
             }
         },
         containerColor = Color(0xFF0D0D12)

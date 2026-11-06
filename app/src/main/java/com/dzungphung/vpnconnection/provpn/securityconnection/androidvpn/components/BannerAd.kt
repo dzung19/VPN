@@ -3,8 +3,11 @@ package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.compon
 import android.app.Activity
 import android.util.Log
 import android.widget.FrameLayout
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -144,15 +147,21 @@ fun BannerAd(modifier: Modifier = Modifier) {
         }
     }
     
-    // Create the banner ad container
+    // Create the banner ad container with fixed banner height (standard banner is 50dp)
     Row(
         modifier = Modifier
-            .padding(bottom = 10.dp)
-            .navigationBarsPadding().then(modifier), // 10dp padding from bottom to avoid user click confusion
+            .fillMaxWidth()
+            .height(60.dp)
+            .navigationBarsPadding()
+            .then(modifier),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         AndroidView(
             factory = { adContainer },
-            modifier = Modifier.fillMaxSize().align(Alignment.CenterVertically),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
         )
     }
 }
