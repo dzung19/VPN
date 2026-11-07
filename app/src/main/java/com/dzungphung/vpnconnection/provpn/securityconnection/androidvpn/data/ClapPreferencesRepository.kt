@@ -55,7 +55,7 @@ class ClapPreferencesRepository @Inject constructor(
     private val _volumePercent = MutableStateFlow(prefs.getInt("volume_percent", 100))
     val volumePercent: StateFlow<Int> = _volumePercent.asStateFlow()
 
-    private val _onlyWhenScreenOff = MutableStateFlow(prefs.getBoolean("only_screen_off", true))
+    private val _onlyWhenScreenOff = MutableStateFlow(prefs.getBoolean("only_screen_off", false))
     val onlyWhenScreenOff: StateFlow<Boolean> = _onlyWhenScreenOff.asStateFlow()
 
     fun setDetectionActive(active: Boolean) {

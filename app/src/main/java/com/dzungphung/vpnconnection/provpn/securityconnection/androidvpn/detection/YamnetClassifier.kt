@@ -29,9 +29,9 @@ class YamnetClassifier @Inject constructor(
         const val EXPECTED_SAMPLE_RATE = 16000
         const val WINDOW_SIZE = 15600 // 0.975s at 16kHz
 
-        // AudioSet class indices for Clapping / Hands
-        // 56: Hands, 57: Finger snapping, 58: Clapping, 62: Applause
-        private val CLAP_CLASSES = intArrayOf(56, 57, 58, 62)
+        // AudioSet class indices for Clapping / Hands / Percussive contact
+        // 56: Hands, 57: Finger snapping, 58: Clapping, 62: Applause, 461: Slap, smack
+        private val CLAP_CLASSES = intArrayOf(56, 57, 58, 62, 461)
 
         // AudioSet class indices for Whistling
         // 35: Whistling, 396: Whistle
@@ -123,6 +123,10 @@ class YamnetClassifier @Inject constructor(
                         maxWhistleConfidence = row[whistleIdx]
                     }
                 }
+            }
+
+            if (maxClapConfidence > 0.15f || maxWhistleConfidence > 0.15f) {
+                Log.d(TAG, "Yamnet candidate: clap=$maxClapConfidence (thresh=$clapThreshold), whistle=$maxWhistleConfidence (thresh=$whistleThreshold)")
             }
 
             return DetectionResult(

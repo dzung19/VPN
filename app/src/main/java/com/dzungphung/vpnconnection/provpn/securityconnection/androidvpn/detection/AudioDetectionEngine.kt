@@ -8,6 +8,7 @@ import android.media.MediaRecorder
 import android.os.PowerManager
 import android.os.Process
 import android.util.Log
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.alert.AlarmController
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.ClapPreferencesRepository
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.DetectionMode
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -20,18 +21,20 @@ import kotlin.math.sqrt
 class AudioDetectionEngine @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val yamnetClassifier: YamnetClassifier,
-    private val preferencesRepository: ClapPreferencesRepository
+    private val preferencesRepository: ClapPreferencesRepository,
+    private val alarmController: AlarmController
 ) {
     companion object {
         private const val TAG = "AudioDetectionEngine"
         private const val SAMPLE_RATE = 16000
-        private const val CHUNK_SIZE = 4000 // 250ms chunks
+        private const val CHUNK_SIZE = 2000 // 125ms chunks for faster transient detection and lower latency
         private const val WINDOW_SIZE = 15600 // 0.975s window for YAMNet
 
-        // Base peak thresholds (out of 32767) for Energy Gate
-        private const val BASE_ENERGY_GATE_PEAK = 4500
-        private const val BASE_CLAP_SCORE_THRESHOLD = 0.28f
-        private const val BASE_WHISTLE_SCORE_THRESHOLD = 0.32f
+        // Base peak threshold (out of 32767) for Energy Gate
+        // 1800 is comfortably above typical quiet room noise (~200-600) and catches natural hand claps
+        private const val BASE_ENERGY_GATE_PEAK = 1800
+        private const val BASE_CLAP_SCORE_THRESHOLD = 0.20f
+        private const val BASE_WHISTLE_SCORE_THRESHOLD = 0.22f
     }
 
     private var audioRecord: AudioRecord? = null
@@ -65,7 +68,7 @@ class AudioDetectionEngine @Inject constructor(
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT
         )
-        val bufferSize = maxOf(minBufSize, CHUNK_SIZE * 2)
+        val bufferSize = maxOf(minBufSize, CHUNK_SIZE * 4)
 
         try {
             audioRecord = AudioRecord(
@@ -100,7 +103,13 @@ class AudioDetectionEngine @Inject constructor(
         while (isRunning && currentCoroutineContext().isActive) {
             val record = audioRecord ?: break
 
-            // Blocking read: Thread sleeps at the OS level until CHUNK_SIZE samples are ready (250ms)
+            // If alarm is already ringing, pause listening to our own siren/sound
+            if (alarmController.isAlarmRinging.value) {
+                delay(250)
+                continue
+            }
+
+            // Blocking read: Thread sleeps at the OS level until CHUNK_SIZE samples are ready (125ms)
             val readSamples = record.read(chunkBuffer, 0, CHUNK_SIZE)
             if (readSamples <= 0) {
                 delay(50)
@@ -137,8 +146,10 @@ class AudioDetectionEngine @Inject constructor(
             val sensitivity = preferencesRepository.sensitivity.value
             val gateThreshold = (BASE_ENERGY_GATE_PEAK * sensitivity.thresholdScale).toInt()
 
-            // If ambient sound is quiet, discard chunk and wait for next read without invoking AI
-            if (peak < gateThreshold || rms < (gateThreshold / 4)) {
+            // Pass if peak amplitude is high (impulse sounds like clapping/slapping)
+            // OR if sustained RMS energy is high (harmonic sounds like whistling)
+            val isAcousticEvent = (peak >= gateThreshold) || (rms >= (gateThreshold / 3))
+            if (!isAcousticEvent) {
                 continue
             }
 
@@ -166,28 +177,30 @@ class AudioDetectionEngine @Inject constructor(
             if (isWhistleEligible && result.isWhistle) {
                 Log.d(TAG, "Whistle detected with confidence: ${result.whistleConfidence}")
                 triggerAlert(isClap = false)
+                delay(500)
                 continue
             }
 
             // Check Clap
             val isClapEligible = (mode == DetectionMode.CLAP_ONLY || mode == DetectionMode.CLAP_AND_WHISTLE)
             if (isClapEligible && result.isClap) {
-                Log.d(TAG, "Clap candidate detected with confidence: ${result.clapConfidence}")
-                // Confirm with double-clap within 1.5 seconds or very high confidence (> 0.50)
-                if (result.clapConfidence >= (clapThresh * 1.5f)) {
+                Log.d(TAG, "Clap candidate detected with confidence: ${result.clapConfidence} (target: $clapThresh)")
+                
+                val timeSinceLastClap = now - lastClapDetectedTime
+                // Strong clap triggers immediately (>= 0.30f or >= clapThresh * 1.35f)
+                val isStrongClap = (result.clapConfidence >= 0.30f) || (result.clapConfidence >= clapThresh * 1.35f)
+                // Double clap within 2.5s (and at least 150ms apart)
+                val isDoubleClap = (timeSinceLastClap in 150..2500)
+
+                if (isStrongClap || isDoubleClap) {
+                    Log.d(TAG, ">>> Clap trigger confirmed! (strong=$isStrongClap, double=$isDoubleClap, conf=${result.clapConfidence})")
                     triggerAlert(isClap = true)
                     consecutiveClapCount = 0
+                    lastClapDetectedTime = 0L
+                    delay(500)
                 } else {
-                    if (now - lastClapDetectedTime < 1500 && now - lastClapDetectedTime > 200) {
-                        consecutiveClapCount++
-                        if (consecutiveClapCount >= 1) {
-                            Log.d(TAG, "Double-clap confirmed!")
-                            triggerAlert(isClap = true)
-                            consecutiveClapCount = 0
-                        }
-                    } else {
-                        consecutiveClapCount = 1
-                    }
+                    Log.d(TAG, "First clap candidate recorded (conf=${result.clapConfidence}), waiting for 2nd clap...")
+                    consecutiveClapCount = 1
                     lastClapDetectedTime = now
                 }
             }
@@ -217,4 +230,3 @@ class AudioDetectionEngine @Inject constructor(
         Log.d(TAG, "AudioDetectionEngine stopped")
     }
 }
-
