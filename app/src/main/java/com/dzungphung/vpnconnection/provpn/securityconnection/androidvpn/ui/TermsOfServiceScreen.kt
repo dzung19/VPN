@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.theme.AppColors
 
 @Composable
 fun TermsOfServiceScreen(
@@ -35,7 +36,7 @@ fun TermsOfServiceScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0D0D12))
+            .background(AppColors.Background)
             .padding(horizontal = 24.dp)
             .systemBarsPadding()
             .navigationBarsPadding(),
@@ -52,14 +53,15 @@ fun TermsOfServiceScreen(
 
             Surface(
                 modifier = Modifier.size(80.dp),
-                shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF6200EA)
+                shape = RoundedCornerShape(22.dp),
+                color = AppColors.AccentCoralSoft,
+                border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.AccentCoral)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Hearing,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = AppColors.AccentCoral,
                         modifier = Modifier.size(44.dp)
                     )
                 }
@@ -70,25 +72,26 @@ fun TermsOfServiceScreen(
             Text(
                 text = stringResource(R.string.app_name),
                 style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
-                color = Color.White
+                color = AppColors.TextPrimary
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = "Quyền riêng tư & Điều khoản sử dụng",
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
-                color = Color.Gray
+                color = AppColors.TextSecondary
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+            Surface(
+                color = AppColors.Surface,
                 shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.SurfaceBorder),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(18.dp)) {
@@ -96,7 +99,7 @@ fun TermsOfServiceScreen(
                         Icon(
                             imageVector = Icons.Default.Shield,
                             contentDescription = null,
-                            tint = Color(0xFF00E676),
+                            tint = AppColors.AccentEmerald,
                             modifier = Modifier.size(24.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -104,14 +107,14 @@ fun TermsOfServiceScreen(
                             text = "Cam kết bảo vệ quyền riêng tư:",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = AppColors.TextPrimary
                         )
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    PolicyItem("100% Xử lý AI cục bộ", "Âm thanh vỗ tay/huýt sáo được phân tích trực tiếp trên máy bằng YAMNet AI, tuyệt đối không gửi lên máy chủ.")
-                    PolicyItem("Không ghi âm hay lưu trữ", "Dữ liệu âm thanh chỉ xử lý tức thời trong RAM và bị hủy ngay lập tức, không lưu thành file.")
+                    PolicyItem("100% Xử lý AI cục bộ", "Âm thanh vỗ tay/huýt sáo được phân tích trực tiếp trên máy bằng YAMNet AI, tuyệt đối không gửi lên bất kỳ máy chủ nào.")
+                    PolicyItem("Không ghi âm hay lưu trữ", "Dữ liệu âm thanh chỉ xử lý tức thời trong RAM và bị hủy ngay lập tức, không bao giờ lưu trữ thành file.")
                     PolicyItem("Đèn Flash & Rung", "Chỉ được kích hoạt khi chuông báo động reo nhằm giúp bạn tìm thấy máy nhanh nhất.")
                 }
             }
@@ -124,12 +127,12 @@ fun TermsOfServiceScreen(
             }) {
                 Text(
                     text = "Xem chi tiết Chính sách bảo mật",
-                    color = Color(0xFF7C4DFF),
+                    color = AppColors.AccentBlue,
                     fontWeight = FontWeight.SemiBold
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Button(
                 onClick = onAccepted,
@@ -137,12 +140,15 @@ fun TermsOfServiceScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EA))
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = AppColors.AccentCoral,
+                    contentColor = Color.White
+                )
             ) {
                 Text(
                     text = "Đồng ý & Bắt đầu",
                     fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = Color.White
                 )
             }
@@ -159,12 +165,12 @@ private fun PolicyItem(title: String, desc: String) {
             text = "• $title",
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF00E676)
+            color = AppColors.AccentEmerald
         )
         Text(
             text = desc,
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFFCCCCCC),
+            color = AppColors.TextSecondary,
             modifier = Modifier.padding(start = 12.dp, top = 2.dp)
         )
     }

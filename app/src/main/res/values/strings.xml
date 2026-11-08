@@ -54,6 +54,49 @@
     <string name="upgrade_button">Upgrade Now</string>
     <string name="policy_yes">I Accept</string>
 
+    <!-- Navigation Tabs -->
+    <string name="tab_finder">Finder</string>
+    <string name="tab_sounds">Sounds</string>
+    <string name="tab_calibration">Lab</string>
+    <string name="tab_settings">Settings</string>
+
+    <!-- Categories & Sound Controls -->
+    <string name="cat_emergency">Emergency</string>
+    <string name="cat_signals">Signals</string>
+    <string name="cat_playful">Playful</string>
+    <string name="alarm_volume">Alarm Volume</string>
+    <string name="alarm_duration">Ring Duration</string>
+    <string name="preview_sound">Preview</string>
+    <string name="stop_preview">Stop</string>
+
+    <!-- Calibration Lab -->
+    <string name="live_sensor">Live Acoustic Sensor</string>
+    <string name="ai_confidence">AI Confidence</string>
+    <string name="test_clap_prompt">Clap hands or whistle now to test sensor response</string>
+    <string name="threshold_level">Trigger Threshold</string>
+    <string name="mode_clap_desc">Detects hand clapping &amp; finger snapping</string>
+    <string name="mode_whistle_desc">Tuned for whistle pitch &amp; harmonics</string>
+    <string name="mode_both_desc">Dual AI classifier (Recommended)</string>
+
+    <!-- Settings & Status -->
+    <string name="test_flash">Test Flash</string>
+    <string name="test_vibe">Test Vibe</string>
+    <string name="system_permissions">System Permissions</string>
+    <string name="perm_mic">Microphone</string>
+    <string name="perm_notif">Notifications</string>
+    <string name="perm_granted">Granted</string>
+    <string name="perm_missing">Fix Now</string>
+    <string name="about_and_legal">About &amp; Legal</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="app_version_label">Version 2.0.0 (LiteRT AI Engine)</string>
+    <string name="quick_sound">Sound</string>
+    <string name="quick_mode">Detection</string>
+    <string name="quick_flash">Flashlight</string>
+    <string name="quick_haptics">Haptics</string>
+    <string name="status_active">PROTECTION ACTIVE</string>
+    <string name="status_standby">STANDBY</string>
+
     <!-- Notification -->
     <string name="notification_title">Clap Finder is Active</string>
     <string name="notification_desc">Clap hands or whistle to locate your phone</string>

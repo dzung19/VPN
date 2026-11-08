@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.alert.AlarmController
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.BillingManager
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.ClapPreferencesRepository
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.detection.AudioDetectionEngine
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.*
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.service.ClapDetectionService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -18,7 +19,8 @@ import javax.inject.Inject
 class HomeViewModel @Inject constructor(
     private val preferencesRepository: ClapPreferencesRepository,
     private val alarmController: AlarmController,
-    private val billingManager: BillingManager
+    private val billingManager: BillingManager,
+    private val audioDetectionEngine: AudioDetectionEngine
 ) : ViewModel() {
 
     val isDetectionActive: StateFlow<Boolean> = preferencesRepository.isDetectionActive
@@ -30,6 +32,12 @@ class HomeViewModel @Inject constructor(
     val flashMode: StateFlow<FlashMode> = preferencesRepository.flashMode
     val vibrationMode: StateFlow<VibrationMode> = preferencesRepository.vibrationMode
     val onlyWhenScreenOff: StateFlow<Boolean> = preferencesRepository.onlyWhenScreenOff
+    val alarmDurationSec: StateFlow<Int> = preferencesRepository.alarmDurationSec
+    val volumePercent: StateFlow<Int> = preferencesRepository.volumePercent
+
+    val liveAudioLevel: StateFlow<Float> = audioDetectionEngine.liveAudioLevel
+    val lastAiConfidence: StateFlow<Float> = audioDetectionEngine.lastAiConfidence
+    val previewSoundId: StateFlow<String?> = alarmController.previewSoundId
 
     val formattedPrice: String
         get() = billingManager.getFormattedPrice()
@@ -55,16 +63,44 @@ class HomeViewModel @Inject constructor(
         preferencesRepository.setSelectedSoundId(soundItem.id)
     }
 
+    fun previewSound(soundItem: SoundItem) {
+        if (previewSoundId.value == soundItem.id) {
+            alarmController.stopPreview()
+        } else {
+            alarmController.previewSound(soundItem.id, soundItem.soundResId)
+        }
+    }
+
+    fun stopPreview() {
+        alarmController.stopPreview()
+    }
+
     fun setFlashMode(mode: FlashMode) {
         preferencesRepository.setFlashMode(mode)
+    }
+
+    fun testFlashPreview(mode: FlashMode) {
+        alarmController.testFlashPreview(mode)
     }
 
     fun setVibrationMode(mode: VibrationMode) {
         preferencesRepository.setVibrationMode(mode)
     }
 
+    fun testVibrationPreview(mode: VibrationMode) {
+        alarmController.testVibrationPreview(mode)
+    }
+
     fun setOnlyWhenScreenOff(enabled: Boolean) {
         preferencesRepository.setOnlyWhenScreenOff(enabled)
+    }
+
+    fun setAlarmDurationSec(sec: Int) {
+        preferencesRepository.setAlarmDurationSec(sec)
+    }
+
+    fun setVolumePercent(percent: Int) {
+        preferencesRepository.setVolumePercent(percent)
     }
 
     fun testAlarm() {

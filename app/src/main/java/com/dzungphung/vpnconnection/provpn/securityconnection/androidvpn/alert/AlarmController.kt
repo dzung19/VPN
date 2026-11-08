@@ -36,7 +36,11 @@ class AlarmController @Inject constructor(
     private val _isAlarmRinging = MutableStateFlow(false)
     val isAlarmRinging: StateFlow<Boolean> = _isAlarmRinging.asStateFlow()
 
+    private val _previewSoundId = MutableStateFlow<String?>(null)
+    val previewSoundId: StateFlow<String?> = _previewSoundId.asStateFlow()
+
     private var mediaPlayer: MediaPlayer? = null
+    private var previewPlayer: MediaPlayer? = null
     private var flashJob: Job? = null
     private var autoStopJob: Job? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -72,6 +76,7 @@ class AlarmController @Inject constructor(
         maxDurationSec: Int
     ) {
         if (_isAlarmRinging.value) return
+        stopPreview()
         _isAlarmRinging.value = true
         Log.d(TAG, "Starting alarm with sound=$soundResId, vol=$volumePercent, flash=$flashMode, vib=$vibrationMode")
 
@@ -101,6 +106,62 @@ class AlarmController @Inject constructor(
         stopFlash()
         stopVibration()
         releaseWakeLock()
+    }
+
+    @Synchronized
+    fun previewSound(soundId: String, soundResId: Int) {
+        if (_isAlarmRinging.value) return
+        stopPreview()
+        _previewSoundId.value = soundId
+        try {
+            previewPlayer = MediaPlayer.create(context, soundResId)?.apply {
+                setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build()
+                )
+                isLooping = false
+                setOnCompletionListener {
+                    stopPreview()
+                }
+                start()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error previewing sound", e)
+            stopPreview()
+        }
+    }
+
+    @Synchronized
+    fun stopPreview() {
+        try {
+            previewPlayer?.stop()
+            previewPlayer?.release()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping preview", e)
+        } finally {
+            previewPlayer = null
+            _previewSoundId.value = null
+        }
+    }
+
+    fun testFlashPreview(flashMode: FlashMode) {
+        if (_isAlarmRinging.value) return
+        startFlash(flashMode)
+        scope.launch {
+            delay(1500)
+            stopFlash()
+        }
+    }
+
+    fun testVibrationPreview(vibrationMode: VibrationMode) {
+        if (_isAlarmRinging.value) return
+        startVibration(vibrationMode)
+        scope.launch {
+            delay(1500)
+            stopVibration()
+        }
     }
 
     private fun startAudio(soundResId: Int, volumePercent: Int) {

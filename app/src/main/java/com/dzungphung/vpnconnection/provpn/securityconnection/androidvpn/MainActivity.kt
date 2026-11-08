@@ -47,22 +47,8 @@ class MainActivity : ComponentActivity() {
 
         enableEdgeToEdge()
 
-        val DarkColors = androidx.compose.material3.darkColorScheme(
-            background = Color(0xFF0D0D12),
-            surface = Color(0xFF1A1A2E),
-            surfaceVariant = Color(0xFF252538),
-            onBackground = Color.White,
-            onSurface = Color.White,
-            onSurfaceVariant = Color.White.copy(alpha = 0.7f),
-            primary = Color(0xFF6200EA),
-            primaryContainer = Color(0xFF3700B3),
-            onPrimary = Color.White,
-            secondary = Color(0xFF00E676),
-            onSecondary = Color.Black
-        )
-
         setContent {
-            MaterialTheme(colorScheme = DarkColors) {
+            com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.theme.ClapFinderTheme {
                 val navController = rememberNavController()
 
                 Surface(

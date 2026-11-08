@@ -55,6 +55,49 @@
     <string name="upgrade_button">Nâng cấp ngay</string>
     <string name="policy_yes">Đồng ý</string>
 
+    <!-- Navigation Tabs -->
+    <string name="tab_finder">Tìm máy</string>
+    <string name="tab_sounds">Âm thanh</string>
+    <string name="tab_calibration">Độ nhạy</string>
+    <string name="tab_settings">Cài đặt</string>
+
+    <!-- Categories & Sound Controls -->
+    <string name="cat_emergency">Khẩn cấp</string>
+    <string name="cat_signals">Tín hiệu</string>
+    <string name="cat_playful">Vui nhộn</string>
+    <string name="alarm_volume">Âm lượng báo động</string>
+    <string name="alarm_duration">Thời lượng chuông reo</string>
+    <string name="preview_sound">Nghe thử</string>
+    <string name="stop_preview">Dừng</string>
+
+    <!-- Calibration Lab -->
+    <string name="live_sensor">Cảm biến Âm thanh Trực tiếp</string>
+    <string name="ai_confidence">Độ tin cậy AI</string>
+    <string name="test_clap_prompt">Vỗ tay hoặc huýt sáo thử để xem mức cảm biến nhảy</string>
+    <string name="threshold_level">Ngưỡng kích hoạt</string>
+    <string name="mode_clap_desc">Nhận diện tiếng vỗ tay và búng tay</string>
+    <string name="mode_whistle_desc">Tối ưu cho cao độ tiếng huýt sáo</string>
+    <string name="mode_both_desc">Phân loại AI kép (Khuyên dùng)</string>
+
+    <!-- Settings & Status -->
+    <string name="test_flash">Thử đèn Flash</string>
+    <string name="test_vibe">Thử Rung</string>
+    <string name="system_permissions">Quyền Hệ thống</string>
+    <string name="perm_mic">Quyền Microphone</string>
+    <string name="perm_notif">Quyền Thông báo</string>
+    <string name="perm_granted">Đã cấp</string>
+    <string name="perm_missing">Cần cấp</string>
+    <string name="about_and_legal">Thông tin &amp; Pháp lý</string>
+    <string name="privacy_policy">Chính sách bảo mật</string>
+    <string name="terms_of_service">Điều khoản dịch vụ</string>
+    <string name="app_version_label">Phiên bản 2.0.0 (LiteRT AI Engine)</string>
+    <string name="quick_sound">Âm chuông</string>
+    <string name="quick_mode">Nhận diện</string>
+    <string name="quick_flash">Đèn Flash</string>
+    <string name="quick_haptics">Rung &amp; Giờ</string>
+    <string name="status_active">ĐANG BẢO VỆ</string>
+    <string name="status_standby">CHẾ ĐỘ CHỜ</string>
+
     <!-- Notification -->
     <string name="notification_title">Đang kích hoạt tìm điện thoại</string>
     <string name="notification_desc">Vỗ tay hoặc huýt sáo để tìm điện thoại của bạn</string>

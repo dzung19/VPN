@@ -13,6 +13,9 @@ import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.Cl
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.model.DetectionMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.sqrt
@@ -54,6 +57,12 @@ class AudioDetectionEngine @Inject constructor(
 
     @Volatile
     private var isRunning = false
+
+    private val _liveAudioLevel = MutableStateFlow(0f)
+    val liveAudioLevel: StateFlow<Float> = _liveAudioLevel.asStateFlow()
+
+    private val _lastAiConfidence = MutableStateFlow(0f)
+    val lastAiConfidence: StateFlow<Float> = _lastAiConfidence.asStateFlow()
 
     var onTriggeredListener: ((isClap: Boolean) -> Unit)? = null
 
@@ -143,6 +152,9 @@ class AudioDetectionEngine @Inject constructor(
             }
             val rms = sqrt((sumSquares / readSamples).toDouble()).toInt()
 
+            // Update live audio level (0.0 to 1.0) for live UI meters and ripples
+            _liveAudioLevel.value = (peak / 10000f).coerceIn(0f, 1f)
+
             val sensitivity = preferencesRepository.sensitivity.value
             val gateThreshold = (BASE_ENERGY_GATE_PEAK * sensitivity.thresholdScale).toInt()
 
@@ -169,6 +181,7 @@ class AudioDetectionEngine @Inject constructor(
             val whistleThresh = BASE_WHISTLE_SCORE_THRESHOLD * sensitivity.thresholdScale
 
             val result = yamnetClassifier.classify(floatWindow, clapThresh, whistleThresh)
+            _lastAiConfidence.value = maxOf(result.clapConfidence, result.whistleConfidence)
 
             val now = System.currentTimeMillis()
 
@@ -216,6 +229,8 @@ class AudioDetectionEngine @Inject constructor(
     @Synchronized
     fun stop() {
         isRunning = false
+        _liveAudioLevel.value = 0f
+        _lastAiConfidence.value = 0f
         recordingJob?.cancel()
         recordingJob = null
 
