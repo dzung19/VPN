@@ -85,12 +85,29 @@ fun HomeScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             bottomBar = {
-                Column(modifier = Modifier.fillMaxWidth().background(AppColors.Surface)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppColors.Surface)
+                ) {
+                    // Banner Ad positioned above navigation bar (if ads active)
+                    if (!isPremium && !BuildConfig.ADS_DISABLED) {
+                        BannerAd(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                        )
+                    }
+
+                    HorizontalDivider(
+                        color = AppColors.SurfaceBorder,
+                        thickness = 1.dp
+                    )
+
                     NavigationBar(
                         containerColor = AppColors.Surface,
                         contentColor = AppColors.TextPrimary,
-                        tonalElevation = 8.dp,
-                        modifier = Modifier.height(68.dp)
+                        tonalElevation = 0.dp
                     ) {
                         // Tab 0: Finder
                         NavigationBarItem(
@@ -150,15 +167,6 @@ fun HomeScreen(
                                 unselectedIconColor = AppColors.TextMuted,
                                 unselectedTextColor = AppColors.TextMuted
                             )
-                        )
-                    }
-
-                    // Banner Ad
-                    if (!isPremium && !BuildConfig.ADS_DISABLED) {
-                        BannerAd(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(60.dp)
                         )
                     }
                 }

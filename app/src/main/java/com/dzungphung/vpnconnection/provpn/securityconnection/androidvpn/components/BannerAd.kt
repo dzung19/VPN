@@ -151,8 +151,7 @@ fun BannerAd(modifier: Modifier = Modifier) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(60.dp)
-            .navigationBarsPadding()
+            .height(50.dp)
             .then(modifier),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
