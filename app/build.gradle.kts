@@ -23,8 +23,8 @@ android {
         applicationId = "com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.0.1"
+        versionCode = 8
+        versionName = "2.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -89,11 +89,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
-    
-    // Networking
-    implementation(libs.retrofit)
-    implementation(libs.converter.gson)
-    implementation(libs.okhttp)
 
     // LiteRT (TensorFlow Lite runtime with 16KB alignment support)
     implementation(libs.litert)

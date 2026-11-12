@@ -37,7 +37,7 @@ class ClapWidgetProvider : AppWidgetProvider() {
         val isActive = try { preferencesRepository.isDetectionActive.value } catch (e: Exception) { false }
 
         for (widgetId in appWidgetIds) {
-            val views = RemoteViews(context.packageName, R.layout.widget_vpn)
+            val views = RemoteViews(context.packageName, R.layout.widget_clap)
 
             val toggleIntent = Intent(context, ClapWidgetProvider::class.java).apply {
                 action = ACTION_TOGGLE
@@ -52,10 +52,10 @@ class ClapWidgetProvider : AppWidgetProvider() {
 
             if (isActive) {
                 views.setTextViewText(R.id.widget_text, context.getString(R.string.listening_active))
-                views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_connected)
+                views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_active)
             } else {
                 views.setTextViewText(R.id.widget_text, context.getString(R.string.tap_to_activate))
-                views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_disconnected)
+                views.setInt(R.id.widget_container, "setBackgroundResource", R.drawable.widget_bg_inactive)
             }
 
             appWidgetManager.updateAppWidget(widgetId, views)

@@ -12,7 +12,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.MainActivity
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
-import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.VpnApp
+import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ClapApp
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.alert.AlarmController
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.data.ClapPreferencesRepository
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.detection.AudioDetectionEngine
@@ -154,7 +154,7 @@ class ClapDetectionService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, VpnApp.CHANNEL_DETECTION_ID)
+        return NotificationCompat.Builder(this, ClapApp.CHANNEL_DETECTION_ID)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(getString(R.string.notification_desc))
             .setSmallIcon(R.drawable.ic_launcher_foreground)

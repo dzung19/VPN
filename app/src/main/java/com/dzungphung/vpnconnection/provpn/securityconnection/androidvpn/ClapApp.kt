@@ -9,7 +9,7 @@ import com.daumo.ads.DynamicAdsManager
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class VpnApp : Application() {
+class ClapApp : Application() {
 
     companion object {
         const val CHANNEL_DETECTION_ID = "clap_detection_service_channel"
@@ -25,7 +25,7 @@ class VpnApp : Application() {
                 val adsDisabled = try {
                     BuildConfig.ADS_DISABLED
                 } catch (e: Exception) {
-                    Log.e("VpnApp", "Error reading BuildConfig.ADS_DISABLED", e)
+                    Log.e("ClapApp", "Error reading BuildConfig.ADS_DISABLED", e)
                     false
                 }
                 DynamicAdsManager.initialize(this, adsDisabled)
