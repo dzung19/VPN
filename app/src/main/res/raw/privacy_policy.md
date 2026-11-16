@@ -1,28 +1,32 @@
 # Privacy Policy for Clap to Find Phone
 
-Last Updated: March 2026
+Last Updated: November 2026
 
 ## Introduction
 Clap to Find Phone ("App") is an on-device utility application designed to help users locate their misplaced phone by detecting clapping or whistling sounds. Your privacy is our top priority.
 
 ## Audio Processing & Microphone Permission
-- **On-Device Real-Time Analysis Only**: The App requests the `RECORD_AUDIO` and `FOREGROUND_SERVICE_MICROPHONE` permissions solely to perform real-time acoustic analysis on your device (using local AI model YAMNet).
-- **No Recording or Storage**: We do **NOT** record, save, store, or archive your voice, conversations, or ambient sound. Audio buffers are evaluated in volatile memory and immediately discarded.
+- **On-Device Real-Time Analysis Only**: The App requests the `RECORD_AUDIO` and `FOREGROUND_SERVICE_MICROPHONE` permissions solely to perform real-time acoustic analysis on your device (using the local YAMNet AI model).
+- **No Recording or Storage**: We do **NOT** record, save, store, or archive your voice, conversations, or ambient sound. Audio buffers are evaluated in volatile memory (RAM) and immediately discarded.
 - **No Transmission**: Audio data is **NEVER** transmitted over the internet or sent to any remote server or third party. All detection runs 100% offline on your device.
 
 ## Camera & Flashlight Permission
 - The `CAMERA` and `FLASHLIGHT` permissions are requested exclusively to blink the device's rear torch light when an alert is triggered, making your phone visible in the dark.
 - The App does not capture photos, take videos, or access camera image sensors.
 
-## Vibration Permission
+## Vibration & Notification Permissions
 - The `VIBRATE` permission is used solely to vibrate the phone during an alarm so you can feel or hear it when the device is under a cushion or mattress.
+- The `POST_NOTIFICATIONS` and `USE_FULL_SCREEN_INTENT` permissions are used to show the active listening status notification and display the alarm stop screen when your phone is found.
 
 ## Advertisements and Purchases
-- We use Google AdMob to display banner, interstitial, and app open ads to keep the application free to use. AdMob may collect anonymous device identifiers in accordance with Google's Advertising Policies.
-- Google Play In-App Billing is used securely if you choose to purchase the optional VIP Pro upgrade. We do not store or process payment card details.
+- We use Google AdMob to display banner, interstitial, and app open ads to keep the application free to use. AdMob may collect anonymous device identifiers (such as Advertising ID) in accordance with Google's Advertising Policies.
+- Google Play In-App Billing is used securely if you choose to purchase the optional ad-free upgrade. We do not store or process payment card details.
+
+## Children's Privacy
+- The App is not directed to children under the age of 13, and we do not knowingly collect personal information from children.
 
 ## Changes to This Policy
 We may update our Privacy Policy periodically. Any updates will be reflected with a revised "Last Updated" date.
 
 ## Contact Us
-If you have questions regarding this Privacy Policy, please contact our support team.
+If you have questions regarding this Privacy Policy, please contact our support team via the contact email listed on our Google Play Store page.

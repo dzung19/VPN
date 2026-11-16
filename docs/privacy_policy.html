@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy - Clap to Find Phone</title>
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --surface: #151821;
+            --border: #282f40;
+            --text: #f9fafb;
+            --muted: #9ca3af;
+            --accent: #ff5722;
+            --emerald: #10b981;
+            --blue: #3b82f6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.65;
+            padding: 32px 16px;
+        }
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 36px 28px;
+        }
+        h1 {
+            margin: 0 0 8px;
+            font-size: 1.9rem;
+            color: var(--text);
+        }
+        .updated {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        h2 {
+            margin-top: 26px;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            color: var(--emerald);
+        }
+        p, li {
+            color: var(--muted);
+            font-size: 0.98rem;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        strong {
+            color: var(--text);
+        }
+        code {
+            background: rgba(59, 130, 246, 0.14);
+            color: var(--blue);
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(255, 87, 34, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(255, 87, 34, 0.4);
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <span class="badge">Clap to Find Phone</span>
+        <h1>Privacy Policy</h1>
+        <div class="updated">Last Updated: November 2026</div>
+
+        <h2>Introduction</h2>
+        <p>
+            Clap to Find Phone ("App") is an on-device utility application designed to help users locate their
+            misplaced phone by detecting clapping or whistling sounds. Your privacy is our top priority.
+        </p>
+
+        <h2>Audio Processing &amp; Microphone Permission</h2>
+        <ul>
+            <li>
+                <strong>On-Device Real-Time Analysis Only:</strong> The App requests the
+                <code>RECORD_AUDIO</code> and <code>FOREGROUND_SERVICE_MICROPHONE</code> permissions solely to
+                perform real-time acoustic analysis on your device (using the local YAMNet AI model).
+            </li>
+            <li>
+                <strong>No Recording or Storage:</strong> We do <strong>NOT</strong> record, save, store, or archive
+                your voice, conversations, or ambient sound. Audio buffers are evaluated in volatile memory (RAM)
+                and immediately discarded.
+            </li>
+            <li>
+                <strong>No Transmission:</strong> Audio data is <strong>NEVER</strong> transmitted over the internet
+                or sent to any remote server or third party. All detection runs 100% offline on your device.
+            </li>
+        </ul>
+
+        <h2>Camera &amp; Flashlight Permission</h2>
+        <ul>
+            <li>
+                The <code>CAMERA</code> and <code>FLASHLIGHT</code> permissions are requested exclusively to blink
+                the device's rear torch light when an alert is triggered, making your phone visible in the dark.
+            </li>
+            <li>The App does not capture photos, take videos, or access camera image sensors.</li>
+        </ul>
+
+        <h2>Vibration &amp; Notification Permissions</h2>
+        <ul>
+            <li>
+                The <code>VIBRATE</code> permission is used solely to vibrate the phone during an alarm so you can
+                feel or hear it when the device is under a cushion or mattress.
+            </li>
+            <li>
+                The <code>POST_NOTIFICATIONS</code> and <code>USE_FULL_SCREEN_INTENT</code> permissions are used to
+                show the active listening status notification and display the alarm stop screen when your phone is found.
+            </li>
+        </ul>
+
+        <h2>Advertisements and Purchases</h2>
+        <ul>
+            <li>
+                We use Google AdMob to display banner, interstitial, and app open ads to keep the application free
+                to use. AdMob may collect anonymous device identifiers (such as Advertising ID) in accordance with
+                Google's Advertising Policies.
+            </li>
+            <li>
+                Google Play In-App Billing is used securely if you choose to purchase the optional ad-free upgrade.
+                We do not store or process payment card details.
+            </li>
+        </ul>
+
+        <h2>Children's Privacy</h2>
+        <p>
+            The App is not directed to children under the age of 13, and we do not knowingly collect personal
+            information from children.
+        </p>
+
+        <h2>Changes to This Policy</h2>
+        <p>
+            We may update our Privacy Policy periodically. Any updates will be reflected with a revised
+            "Last Updated" date.
+        </p>
+
+        <h2>Contact Us</h2>
+        <p>
+            If you have questions regarding this Privacy Policy, please contact our support team via the contact
+            email listed on our Google Play Store page.
+        </p>
+    </main>
+</body>
+</html>
