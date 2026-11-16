@@ -109,19 +109,33 @@ class AudioDetectionEngine @Inject constructor(
     }
 
     private suspend fun runDetectionLoop() {
+        var wasAlarmRinging = false
+        var lastAlarmStoppedTime = 0L
+
         while (isRunning && currentCoroutineContext().isActive) {
             val record = audioRecord ?: break
 
-            // If alarm is already ringing, pause listening to our own siren/sound
-            if (alarmController.isAlarmRinging.value) {
-                delay(250)
-                continue
-            }
-
             // Blocking read: Thread sleeps at the OS level until CHUNK_SIZE samples are ready (125ms)
+            // Always drain AudioRecord even while alarm is ringing so stale siren audio isn't buffered
             val readSamples = record.read(chunkBuffer, 0, CHUNK_SIZE)
             if (readSamples <= 0) {
                 delay(50)
+                continue
+            }
+
+            if (alarmController.isAlarmRinging.value) {
+                wasAlarmRinging = true
+                _liveAudioLevel.value = 0f
+                continue
+            }
+
+            if (wasAlarmRinging) {
+                wasAlarmRinging = false
+                lastAlarmStoppedTime = System.currentTimeMillis()
+                ringBuffer.fill(0)
+                ringHead = 0
+                consecutiveClapCount = 0
+                lastClapDetectedTime = 0L
                 continue
             }
 
@@ -129,6 +143,11 @@ class AudioDetectionEngine @Inject constructor(
             for (i in 0 until readSamples) {
                 ringBuffer[ringHead] = chunkBuffer[i]
                 ringHead = (ringHead + 1) % WINDOW_SIZE
+            }
+
+            // Cooldown for 2 seconds after alarm stops to avoid speaker echo / tap re-triggering
+            if (System.currentTimeMillis() - lastAlarmStoppedTime < 2000L) {
+                continue
             }
 
             // Check if user enabled "Only when screen is off"

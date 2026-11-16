@@ -1,5 +1,6 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.alert
 
+import android.app.NotificationManager
 import android.content.Context
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraCharacteristics
@@ -106,6 +107,13 @@ class AlarmController @Inject constructor(
         stopFlash()
         stopVibration()
         releaseWakeLock()
+
+        try {
+            val nm = context.getSystemService(NotificationManager::class.java)
+            nm?.cancel(1002)
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not cancel alarm notification: ${e.message}")
+        }
     }
 
     @Synchronized

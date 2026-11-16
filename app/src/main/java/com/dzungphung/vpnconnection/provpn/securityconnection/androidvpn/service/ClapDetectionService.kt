@@ -1,6 +1,7 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.service
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
@@ -123,7 +124,9 @@ class ClapDetectionService : Service() {
             maxDurationSec = duration
         )
 
-        // Wake screen and bring activity to front
+        showAlarmFullScreenNotification()
+
+        // Wake screen and bring activity to front (fallback when app is permitted to launch)
         try {
             val appIntent = Intent(this, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -133,6 +136,46 @@ class ClapDetectionService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "Could not launch MainActivity on alarm", e)
         }
+    }
+
+    private fun showAlarmFullScreenNotification() {
+        val fullScreenIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("EXTRA_ALARM_RINGING", true)
+        }
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this,
+            2,
+            fullScreenIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val stopAlarmIntent = Intent(this, AlarmActionReceiver::class.java).apply {
+            action = "ACTION_STOP_ALARM"
+        }
+        val stopAlarmPendingIntent = PendingIntent.getBroadcast(
+            this,
+            3,
+            stopAlarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmNotification = NotificationCompat.Builder(this, ClapApp.CHANNEL_ALARM_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(getString(R.string.phone_found))
+            .setContentText(getString(R.string.tap_anywhere_to_stop))
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setAutoCancel(true)
+            .setContentIntent(fullScreenPendingIntent)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .addAction(0, getString(R.string.stop_alarm), stopAlarmPendingIntent)
+            .build()
+
+        val nm = getSystemService(NotificationManager::class.java)
+        nm?.notify(ALARM_NOTIFICATION_ID, alarmNotification)
     }
 
     private fun buildOngoingNotification(): Notification {

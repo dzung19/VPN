@@ -5,6 +5,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +22,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.R
@@ -63,6 +66,12 @@ fun AlarmRingingOverlay(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xF00D0F14))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onStopAlarm
+                )
+                .systemBarsPadding()
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -74,18 +83,18 @@ fun AlarmRingingOverlay(
                 // Radar Rings
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(220.dp)
+                    modifier = Modifier.size(190.dp)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(200.dp)
+                            .size(170.dp)
                             .scale(waveScale)
                             .clip(CircleShape)
                             .background(Color(0xFFEF4444).copy(alpha = waveAlpha))
                     )
                     Box(
                         modifier = Modifier
-                            .size(130.dp)
+                            .size(120.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.radialGradient(
@@ -98,29 +107,31 @@ fun AlarmRingingOverlay(
                             imageVector = Icons.Default.Campaign,
                             contentDescription = null,
                             tint = Color.White,
-                            modifier = Modifier.size(54.dp)
+                            modifier = Modifier.size(50.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = stringResource(R.string.phone_found),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    color = Color.White,
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
                     text = stringResource(currentSound.nameRes),
                     style = MaterialTheme.typography.bodyLarge,
-                    color = AppColors.TextSecondary
+                    color = AppColors.TextSecondary,
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
                 // Giant Stop Button
                 Button(
@@ -133,13 +144,13 @@ fun AlarmRingingOverlay(
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .height(72.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Stop,
                         contentDescription = null,
                         tint = Color(0xFFEF4444),
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(30.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
@@ -149,8 +160,16 @@ fun AlarmRingingOverlay(
                         letterSpacing = 1.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = stringResource(R.string.tap_anywhere_to_stop),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = AppColors.TextSecondary,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
 }
-
