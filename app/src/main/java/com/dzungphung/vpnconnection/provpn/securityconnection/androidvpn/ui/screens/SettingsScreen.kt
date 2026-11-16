@@ -1,9 +1,9 @@
 package com.dzungphung.vpnconnection.provpn.securityconnection.androidvpn.ui.screens
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -54,27 +53,21 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         // -------------------------------------------------------------
         // FLASH & VIBRATION HARDWARE CONTROLS
         // -------------------------------------------------------------
-        Text(
-            text = "HARDWARE ALERTS",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.TextMuted,
-            letterSpacing = 1.sp
-        )
+        SectionHeader(text = "HARDWARE ALERTS")
 
         Surface(
             color = AppColors.Surface,
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.SurfaceBorder),
+            border = BorderStroke(1.dp, AppColors.SurfaceBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
                 // Flashlight Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -86,7 +79,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.FlashlightOn,
                             contentDescription = null,
                             tint = AppColors.AccentAmber,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -97,7 +90,11 @@ fun SettingsScreen(
                         )
                     }
 
-                    TextButton(onClick = { viewModel.testFlashPreview(flashMode) }) {
+                    TextButton(
+                        onClick = { viewModel.testFlashPreview(flashMode) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
                         Text(
                             text = stringResource(R.string.test_flash),
                             style = MaterialTheme.typography.labelSmall,
@@ -118,11 +115,11 @@ fun SettingsScreen(
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(36.dp)
+                                .height(34.dp)
                                 .clickable { viewModel.setFlashMode(mode) },
                             color = if (isSelected) AppColors.AccentAmberSoft else AppColors.SurfaceVariant,
                             shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(
+                            border = BorderStroke(
                                 width = if (isSelected) 1.5.dp else 1.dp,
                                 color = if (isSelected) AppColors.AccentAmber else AppColors.SurfaceBorder
                             )
@@ -141,7 +138,7 @@ fun SettingsScreen(
                 }
 
                 HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
+                    modifier = Modifier.padding(vertical = 10.dp),
                     color = AppColors.SurfaceBorder
                 )
 
@@ -156,7 +153,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.Vibration,
                             contentDescription = null,
                             tint = AppColors.AccentCoral,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -167,7 +164,11 @@ fun SettingsScreen(
                         )
                     }
 
-                    TextButton(onClick = { viewModel.testVibrationPreview(vibrationMode) }) {
+                    TextButton(
+                        onClick = { viewModel.testVibrationPreview(vibrationMode) },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
                         Text(
                             text = stringResource(R.string.test_vibe),
                             style = MaterialTheme.typography.labelSmall,
@@ -188,11 +189,11 @@ fun SettingsScreen(
                         Surface(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(36.dp)
+                                .height(34.dp)
                                 .clickable { viewModel.setVibrationMode(mode) },
                             color = if (isSelected) AppColors.AccentCoralSoft else AppColors.SurfaceVariant,
                             shape = RoundedCornerShape(8.dp),
-                            border = androidx.compose.foundation.BorderStroke(
+                            border = BorderStroke(
                                 width = if (isSelected) 1.5.dp else 1.dp,
                                 color = if (isSelected) AppColors.AccentCoral else AppColors.SurfaceBorder
                             )
@@ -215,24 +216,21 @@ fun SettingsScreen(
         // -------------------------------------------------------------
         // SMART BATTERY SAVER
         // -------------------------------------------------------------
-        Text(
+        SectionHeader(
             text = "BATTERY & OPTIMIZATION",
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.TextMuted,
-            letterSpacing = 1.sp
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         Surface(
             color = AppColors.Surface,
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.SurfaceBorder),
+            border = BorderStroke(1.dp, AppColors.SurfaceBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -242,7 +240,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.BatteryChargingFull,
                             contentDescription = null,
                             tint = AppColors.AccentEmerald,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -252,14 +250,17 @@ fun SettingsScreen(
                             color = AppColors.TextPrimary
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = stringResource(R.string.battery_saver_desc),
                         style = MaterialTheme.typography.labelSmall,
                         color = AppColors.TextSecondary,
-                        fontSize = 11.sp
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 Switch(
                     checked = onlyWhenScreenOff,
@@ -276,26 +277,23 @@ fun SettingsScreen(
         // -------------------------------------------------------------
         // SYSTEM HEALTH & PERMISSIONS
         // -------------------------------------------------------------
-        Text(
+        SectionHeader(
             text = stringResource(R.string.system_permissions).uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.TextMuted,
-            letterSpacing = 1.sp
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         Surface(
             color = AppColors.Surface,
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.SurfaceBorder),
+            border = BorderStroke(1.dp, AppColors.SurfaceBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp)) {
                 // Mic Permission
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -304,7 +302,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.Mic,
                             contentDescription = null,
                             tint = if (hasMic) AppColors.AccentEmerald else AppColors.AccentRed,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
@@ -328,7 +326,7 @@ fun SettingsScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = 9.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -337,7 +335,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = null,
                             tint = if (hasNotif) AppColors.AccentEmerald else AppColors.AccentRed,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
@@ -360,18 +358,15 @@ fun SettingsScreen(
         // -------------------------------------------------------------
         // ABOUT & LEGAL
         // -------------------------------------------------------------
-        Text(
+        SectionHeader(
             text = stringResource(R.string.about_and_legal).uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = AppColors.TextMuted,
-            letterSpacing = 1.sp
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         Surface(
             color = AppColors.Surface,
             shape = RoundedCornerShape(16.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, AppColors.SurfaceBorder),
+            border = BorderStroke(1.dp, AppColors.SurfaceBorder),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -379,7 +374,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onNavigateToTerms() }
-                        .padding(16.dp),
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -388,7 +383,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
                             tint = AppColors.AccentBlue,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
@@ -401,7 +396,8 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = AppColors.TextMuted
+                        tint = AppColors.TextMuted,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
@@ -411,7 +407,7 @@ fun SettingsScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onNavigateToTerms() }
-                        .padding(16.dp),
+                        .padding(horizontal = 14.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -420,7 +416,7 @@ fun SettingsScreen(
                             imageVector = Icons.Default.Description,
                             contentDescription = null,
                             tint = AppColors.AccentCoral,
-                            modifier = Modifier.size(20.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
@@ -433,23 +429,36 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Default.ChevronRight,
                         contentDescription = null,
-                        tint = AppColors.TextMuted
+                        tint = AppColors.TextMuted,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         // Version Label
         Text(
             text = stringResource(R.string.app_version_label),
             style = MaterialTheme.typography.labelSmall,
             color = AppColors.TextMuted,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .padding(top = 4.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }
 
+@Composable
+private fun SectionHeader(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = AppColors.TextMuted,
+        letterSpacing = 1.sp,
+        modifier = modifier
+    )
+}
